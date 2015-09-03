@@ -75,6 +75,24 @@
 #define x86_xchg(ptr, v)		__x86_xchg_op((ptr), (v), xchg, "")
 #define x86_xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
 
+#define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)                        \
+({                                                                      \
+        char __ret;                                                     \
+        __typeof__(*(p1)) __old1 = (o1), __new1 = (n1);                 \
+        __typeof__(*(p2)) __old2 = (o2), __new2 = (n2);                 \
+        asm volatile(pfx "cmpxchg%c4b %2; sete %0"                      \
+                     : "=a" (__ret), "+d" (__old2),                     \
+                       "+m" (*(p1)), "+m" (*(p2))                       \
+                     : "i" (2 * sizeof(long)), "a" (__old1),            \
+                       "b" (__new1), "c" (__new2));                     \
+        __ret;                                                          \
+})
+
+
+#define cmpxchg16(p1, p2, o1, o2, n1, n2) \
+        __cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
+
+
 /* Each node represents a registered NVM atomic region. */
 struct node {
 	void *region_start;
@@ -180,7 +198,7 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 		/*
 		 * Generate a segmentation fault.
 		 */
-		printf("Error: NVM region not registered as fam-atomic region?");
+		printf("Error: NVM region not registered as fam-atomic region?\n");
 		kill(0, SIGSEGV);
 	}
 
@@ -216,8 +234,21 @@ int64_t fam_atomic_64_read_unpadded(int64_t *address)
 
 extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 {
-	/* TODO: Not supported on this version of the library */
-	fam_atomic_128_not_supported_in_this_version();
+	int64_t old[2];
+	char ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	for (;;) {
+		old[0] = fam_atomic_64_read_unpadded(address);
+		old[1] = fam_atomic_64_read_unpadded(address2);
+		ret = cmpxchg16(address, address2, old[0], old[1], old[0], old[1]);
+
+		if (ret) {
+			result[0] = old[0];
+			result[1] = old[1];
+			return;
+		}
+	}
 }
 
 void fam_atomic_32_write_unpadded(int32_t *address, int32_t value)
@@ -242,10 +273,18 @@ void fam_atomic_64_write_unpadded(int64_t *address, int64_t value)
 
 void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 {
-	/* TODO: Not supported on this version of the library */
-	fam_atomic_128_not_supported_in_this_version();
-}
+	int64_t old[2];
+	char ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
 
+	for (;;) {
+		old[0] = fam_atomic_64_read_unpadded(address);
+		old[1] = fam_atomic_64_read_unpadded(address2);
+		ret = cmpxchg16(address, address2, old[0], old[1], value[0], value[1]);
+		if (ret)
+			return;
+        }
+}
 
 int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
 {
@@ -275,9 +314,21 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 
 void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t result[2])
 {
-	/* TODO: Not supported on this version of the library */
-	fam_atomic_128_not_supported_in_this_version();
+	int64_t old[2];
+	char ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
 
+	for (;;) {
+		old[0] = fam_atomic_64_read_unpadded(address);
+		old[1] = fam_atomic_64_read_unpadded(address2);
+		ret = cmpxchg16(address, address2, old[0], old[1], value[0], value[1]);
+
+		if (ret) {
+			result[0] = old[0];
+			result[1] = old[1];
+			return;
+		}
+	}
 }
 
 int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
@@ -309,11 +360,30 @@ int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 }
 
 void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
-					       int64_t compare[2],
+					       int64_t expected[2],
+					       int64_t desired[2],
 					       int64_t result[2])
 {
-	/* TODO: Not supported on this version of the library */
-	fam_atomic_128_not_supported_in_this_version();
+	int64_t old[2];
+	char ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	old[0] = fam_atomic_64_read_unpadded(address);
+	old[1] = fam_atomic_64_read_unpadded(address + sizeof(int64_t));
+	ret = cmpxchg16(address, address2, expected[0], expected[1],
+					    		    desired[0], desired[1]);
+
+	if (ret) {
+		result[0] = expected[0];
+		result[1] = expected[1];
+		return;
+	} else {
+		/*
+		 * For now, the results will be the old values read from fam_atomic_64_read().
+		 */
+		result[0] = old[0];
+		result[1] = old[1];
+	}
 }
 
 int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
@@ -369,7 +439,6 @@ void fam_atomic_64_write(struct fam_atomic_64 *address, int64_t value)
 
 void fam_atomic_128_write(struct fam_atomic_128 *address, int64_t value[2])
 {
-
 	fam_atomic_128_write_unpadded(address->__v__, value);
 }
 
@@ -402,9 +471,10 @@ int64_t fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
 
 void fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
 				      int64_t expected[2],
-				      int64_t desired[2])
+				      int64_t desired[2],
+				      int64_t result[2])
 {
-	return fam_atomic_128_compare_and_store_unpadded(address->__v__, expected, desired);
+	return fam_atomic_128_compare_and_store_unpadded(address->__v__, expected, desired, result);
 }
 
 

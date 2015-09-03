@@ -127,7 +127,8 @@ fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
 extern void
 fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
 				 int64_t expected[2],
-				 int64_t desired[2]);
+				 int64_t desired[2],
+				 int64_t result[2]);
 
 /*
  * Atomically adds "increment" to the atomic variable and returns the
@@ -197,7 +198,8 @@ fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 
 extern void
 fam_atomic_128_compare_and_store_unpadded(int64_t *address,
-					  int64_t compare[2],
+					  int64_t expected[2],
+					  int64_t desired[2],
 					  int64_t result[2]);
 
 extern int32_t
