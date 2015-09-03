@@ -39,12 +39,14 @@ struct fam_atomic_128 {
  * @fd: The file descriptor associated with the NVM region.
  * @offset: The offset from the start of the file.
  *	    (If address, is the start of the file, then offset can be 0.
+ *
+ * Return: 0 if the register function succeeds, else a negative value.
  */
 extern int
 fam_atomic_register_region(void *region_start,
-		    size_t region_length,
-		    int fd,
-		    off_t offset);
+			   size_t region_length,
+			   int fd,
+			   off_t offset);
 
 extern void
 fam_atomic_unregister_region(void *region_start,

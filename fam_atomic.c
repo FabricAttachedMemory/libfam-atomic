@@ -75,15 +75,6 @@
 #define x86_xchg(ptr, v)		__x86_xchg_op((ptr), (v), xchg, "")
 #define x86_xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
 
-/*
- * TODO: Convert this to a balanced binary search tree for O(log(n)).
- *
- * Per-thread list of registered NVM atomic regions. This stores
- * the information of the mapping from atomic VA to (fd, offset)
- * pair, which get's passed to the kernel.
- */
-static __thread struct list *fam_atomic_region_list = NULL;
-
 /* Each node represents a registered NVM atomic region. */
 struct node {
 	void *region_start;
@@ -116,6 +107,15 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
 	free(node);
 }
 
+/*
+ * TODO: Convert this to a balanced binary search tree for O(log(n)).
+ *
+ * Per-thread list of registered NVM atomic regions. This stores
+ * the information of the mapping from atomic VA to (fd, offset)
+ * pair, which get's passed to the kernel.
+ */
+static __thread struct list fam_atomic_region_list = { .head = NULL };
+
 int fam_atomic_register_region(void *region_start, size_t region_length, int fd, off_t offset)
 {
 	struct node *new_node = malloc(sizeof(new_node));
@@ -123,21 +123,12 @@ int fam_atomic_register_region(void *region_start, size_t region_length, int fd,
 	if (!new_node)
 		return -1;
 
-	/*
-	 * Allocate the fam-atomic region list and initialize it
-	 * the first time.
-	 */
-	if (fam_atomic_region_list == NULL) {
-		fam_atomic_region_list = malloc(sizeof(struct list));
-		fam_atomic_region_list->head = NULL;
-	}
-
 	new_node->region_start = region_start;
 	new_node->region_length = region_length;
 	new_node->fd = fd;
 	new_node->offset = offset;
 
-	list_add(fam_atomic_region_list, new_node);
+	list_add(&fam_atomic_region_list, new_node);
 
 	return 0;
 }
@@ -148,7 +139,7 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 
 	prev = NULL;
 
-	for (curr = fam_atomic_region_list->head; curr != NULL; curr = curr->next) {
+	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
 		if (curr->region_start == region_start &&
 		    curr->region_length == region_length)
 			break;
@@ -160,7 +151,7 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 	if (!curr)
 		return;
 
-	list_del(fam_atomic_region_list, prev, curr);
+	list_del(&fam_atomic_region_list, prev, curr);
 }
 
 /*
@@ -176,7 +167,7 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
 	struct node *curr = NULL;
 
-	for (curr = fam_atomic_region_list->head; curr != NULL; curr = curr->next) {
+	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
 		if (curr->region_start <= address &&
 		    curr->region_start + curr->region_length >= address)
 			break;
@@ -204,7 +195,7 @@ int32_t fam_atomic_32_read_unpadded(int32_t *address)
 	int64_t offset;
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
+
 	value =  x86_xadd(address, 0);
 
 	return value;
@@ -400,15 +391,13 @@ void fam_atomic_128_swap(struct fam_atomic_128 *address, int64_t value[2], int64
 int32_t fam_atomic_32_compare_and_store(struct fam_atomic_32 *address,
 				    int32_t expected, int32_t desired)
 {
-	return fam_atomic_32_compare_and_store_unpadded(&address->__v__,
-							 expected, desired);
+	return fam_atomic_32_compare_and_store_unpadded(&address->__v__, expected, desired);
 }
 
 int64_t fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
 					int64_t expected, int64_t desired)
 {
-	return fam_atomic_64_compare_and_store_unpadded(&address->__v__,
-							 expected, desired);
+	return fam_atomic_64_compare_and_store_unpadded(&address->__v__, expected, desired);
 }
 
 void fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
