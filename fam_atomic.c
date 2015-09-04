@@ -98,7 +98,7 @@ struct node {
 	void *region_start;
 	size_t region_length;
 	int fd;
-	off_t offset;
+	off_t region_offset;
 	/* Next node in the linked list. */
 	struct node *next;
 };
@@ -129,7 +129,7 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
  * TODO: Convert this to a balanced binary search tree for O(log(n)).
  *
  * Per-thread list of registered NVM atomic regions. This stores
- * the information of the mapping from atomic VA to (fd, offset)
+ * the information of the mapping from atomic VA to (fd, region_offset)
  * pair, which get's passed to the kernel.
  */
 static __thread struct list fam_atomic_region_list = { .head = NULL };
@@ -144,7 +144,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length, int fd,
 	new_node->region_start = region_start;
 	new_node->region_length = region_length;
 	new_node->fd = fd;
-	new_node->offset = offset;
+	new_node->region_offset = offset;
 
 	list_add(&fam_atomic_region_list, new_node);
 
@@ -203,7 +203,8 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	}
 
 	*fd = curr->fd;
-	*offset = (int64_t)address - (int64_t)curr->region_start;
+	*offset = (int64_t)address - (int64_t)curr->region_start +
+		  (int64_t)curr->region_offset;
 }
 
 int32_t fam_atomic_32_read_unpadded(int32_t *address)
