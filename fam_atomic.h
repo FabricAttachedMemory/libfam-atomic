@@ -7,6 +7,7 @@
  * should be in their own cacheline and should not share cachelines
  * with non fam-atomic data.
  */
+#include <stdlib.h>
 #include <stdint.h>
 
 /*
@@ -209,4 +210,63 @@ fam_atomic_32_fetch_and_add_unpadded(int32_t *address,
 extern int64_t
 fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
 				     int64_t increment);
+
+/*
+ * Spinlocks
+ */
+typedef int32_t        __fam_ticket_t;
+typedef int64_t        __fam_ticketpair_t;
+
+/*
+ * The spinlock is a queue made from two values, head and tail. To
+ * lock, you increment tail and then wait until head reaches the
+ * previous tail value. This makes the queuing "fair", in that tasks
+ * arriving at the spinlock earlier get to run sooner.
+ *
+ * The increment has to be done atomically so that only one task is
+ * waiting for head to reach each unique tail value
+ *
+ * By laying out the head and tail in sequential memory and then
+ * aliasing that to a value of twice the width, we can actually
+ * increment the tail value and fetch the head in a single operation.
+ * We place the tail in the high order bytes and so that when we add
+ * to it, the result won't overflow into the head value. This is a
+ * cute trick cribbed from the Linux spinlock code.
+ */
+struct fam_spinlock_unpadded {
+        union {
+                __fam_ticketpair_t      head_tail;
+                struct __fam_tickets {
+                        __fam_ticket_t  head;   /* low bytes */
+                        __fam_ticket_t  tail;   /* high bytes */
+                } tickets;
+        };
+};
+
+#define FAM_SPINLOCK_UNPADDED_INITIALIZER       { .head_tail = 0 }
+
+extern void
+fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock);
+
+extern int
+fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock);
+
+extern void
+fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock);
+
+struct fam_spinlock {
+        struct fam_spinlock_unpadded __v__ __attribute((__aligned__(64)));
+};
+
+#define FAM_SPINLOCK_INITIALIZER        { .__v__ = { .head_tail = 0 } }
+
+extern void
+fam_spin_lock(struct fam_spinlock *lock);
+
+extern int
+fam_spin_trylock(struct fam_spinlock *lock);
+
+extern void
+fam_spin_unlock(struct fam_spinlock *lock);
+
 #endif
