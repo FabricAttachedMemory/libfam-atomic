@@ -315,22 +315,32 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
 
-	old[0] = fam_atomic_64_read_unpadded(address);
-	old[1] = fam_atomic_64_read_unpadded(address + sizeof(int64_t));
-	ret = cmpxchg16(address, address2, compare[0], compare[1],
-					   store[0], store[1]);
+	for (;;) {
+		old[0] = fam_atomic_64_read_unpadded(address);
+		old[1] = fam_atomic_64_read_unpadded(address + sizeof(int64_t));
+		ret = cmpxchg16(address, address2, compare[0], compare[1],
+						   store[0], store[1]);
 
-	if (ret) {
-		result[0] = compare[0];
-		result[1] = compare[1];
-		return;
-	} else {
-		/*
-		 * TODO: For now, the results will be the old values
-		 * read from fam_atomic_64_read().
-		 */
-		result[0] = old[0];
-		result[1] = old[1];
+		if (ret) {
+			/*
+			 * Success, the previous values match the compare values.
+			 */
+			result[0] = compare[0];
+			result[1] = compare[1];
+			return;
+		} else {
+			/*
+			 * cmpxchg16 returned false. Make sure the sampled
+			 * "old" values do not match the compare values so that
+			 * users can correctly check that the operation did not
+			 * succeed. Otherwise, we will retry the operation.
+			 */
+			if (old[0] != compare[0] || old[1] != compare[1]) {
+				result[0] = old[0];
+				result[1] = old[1];
+				return;
+			}
+		}
 	}
 }
 
