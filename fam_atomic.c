@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
@@ -63,7 +64,7 @@
                                       : : "memory", "cc");              \
                         break;                                          \
                 default:                                                \
-                       fam_atomic_ ## op ## _wrong_size();                    \
+                       fam_atomic_ ## op ## _wrong_size();              \
                 }                                                       \
                 __ret;                                                  \
         })
@@ -76,7 +77,7 @@
 
 #define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)                        \
 ({                                                                      \
-        char __ret;                                                     \
+        bool __ret;                                                     \
         __typeof__(*(p1)) __old1 = (o1), __new1 = (n1);                 \
         __typeof__(*(p2)) __old2 = (o2), __new2 = (n2);                 \
         asm volatile(pfx "cmpxchg%c4b %2; sete %0"                      \
@@ -87,10 +88,8 @@
         __ret;                                                          \
 })
 
-
 #define cmpxchg16(p1, p2, o1, o2, n1, n2) \
         __cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
-
 
 /* Each node represents a registered NVM atomic region. */
 struct node {
@@ -125,7 +124,7 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
 }
 
 /*
- * TODO: Convert this to a balanced binary search tree for O(log(n)).
+ * TODO: Convert this to a balanced binary search tree for O(log(n)) search.
  *
  * Per-thread list of registered NVM atomic regions. This stores
  * the information of the mapping from atomic VA to (fd, region_offset)
@@ -135,7 +134,7 @@ static __thread struct list fam_atomic_region_list = { .head = NULL };
 
 int fam_atomic_register_region(void *region_start, size_t region_length, int fd, off_t offset)
 {
-	struct node *new_node = malloc(sizeof(new_node));
+	struct node *new_node = malloc(sizeof(struct node));
 
 	if (!new_node)
 		return -1;
@@ -178,7 +177,7 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
  * order for this function to succeed.
  *
  * If the region containing the atomic has not been registered, then this
- * function will exit with an error.
+ * function will generate a segmentation fault.
  */
 static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
@@ -204,6 +203,135 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	*fd = curr->fd;
 	*offset = (int64_t)address - (int64_t)curr->region_start +
 		  (int64_t)curr->region_offset;
+}
+
+int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
+{
+	int32_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_xadd(address, increment);
+
+	return prev;
+}
+
+int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment)
+{
+	int64_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_xadd(address, increment);
+
+	return prev;
+}
+
+int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
+{
+	int32_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_xchg(address, value);
+
+	return prev;
+}
+
+int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
+{
+	int64_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_xchg(address, value);
+
+	return prev;
+}
+
+void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t result[2])
+{
+	int64_t old[2];
+	bool ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	for (;;) {
+		old[0] = fam_atomic_64_read_unpadded(address);
+		old[1] = fam_atomic_64_read_unpadded(address2);
+		ret = cmpxchg16(address, address2, old[0], old[1], value[0], value[1]);
+
+		if (ret) {
+			result[0] = old[0];
+			result[1] = old[1];
+			return;
+		}
+	}
+}
+
+int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
+						 int32_t compare,
+						 int32_t store)
+{
+	int32_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_cmpxchg(address, compare, store);
+
+	return prev;
+}
+
+int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
+					  	 int64_t compare,
+						 int64_t store)
+{
+	int64_t prev;
+	int fd;
+	int64_t offset;
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
+	
+	prev = x86_cmpxchg(address, compare, store);
+
+	return prev;
+}
+
+void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
+					       int64_t compare[2],
+					       int64_t store[2],
+					       int64_t result[2])
+{
+	int64_t old[2];
+	bool ret;
+	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	old[0] = fam_atomic_64_read_unpadded(address);
+	old[1] = fam_atomic_64_read_unpadded(address + sizeof(int64_t));
+	ret = cmpxchg16(address, address2, compare[0], compare[1],
+					   store[0], store[1]);
+
+	if (ret) {
+		result[0] = compare[0];
+		result[1] = compare[1];
+		return;
+	} else {
+		/*
+		 * TODO: For now, the results will be the old values
+		 * read from fam_atomic_64_read().
+		 */
+		result[0] = old[0];
+		result[1] = old[1];
+	}
 }
 
 int32_t fam_atomic_32_read_unpadded(int32_t *address)
@@ -235,7 +363,7 @@ int64_t fam_atomic_64_read_unpadded(int64_t *address)
 extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 {
 	int64_t old[2];
-	char ret;
+	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
 
 	for (;;) {
@@ -274,7 +402,7 @@ void fam_atomic_64_write_unpadded(int64_t *address, int64_t value)
 void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 {
 	int64_t old[2];
-	char ret;
+	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
 
 	for (;;) {
@@ -283,133 +411,54 @@ void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 		ret = cmpxchg16(address, address2, old[0], old[1], value[0], value[1]);
 		if (ret)
 			return;
-        }
-}
-
-int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
-{
-	int32_t prev;
-	int fd;
-	int64_t offset;
-
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_xchg(address, value);
-
-	return prev;
-}
-
-int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
-{
-	int64_t prev;
-	int fd;
-	int64_t offset;
-
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_xchg(address, value);
-
-	return prev;
-}
-
-void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t result[2])
-{
-	int64_t old[2];
-	char ret;
-	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
-
-	for (;;) {
-		old[0] = fam_atomic_64_read_unpadded(address);
-		old[1] = fam_atomic_64_read_unpadded(address2);
-		ret = cmpxchg16(address, address2, old[0], old[1], value[0], value[1]);
-
-		if (ret) {
-			result[0] = old[0];
-			result[1] = old[1];
-			return;
-		}
 	}
 }
 
-int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
-				int32_t expected, int32_t desired)
+int32_t fam_atomic_32_fetch_and_add(struct fam_atomic_32 *address, int32_t increment)
 {
-	int32_t prev;
-	int fd;
-	int64_t offset;
-
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_cmpxchg(address, expected, desired);
-
-	return prev;
+	return fam_atomic_32_fetch_and_add_unpadded(&address->__v__, increment);
 }
 
-int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
-					  int64_t expected, int64_t desired)
+int64_t fam_atomic_64_fetch_and_add(struct fam_atomic_64 *address, int64_t increment)
 {
-	int64_t prev;
-	int fd;
-	int64_t offset;
-
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_cmpxchg(address, expected, desired);
-
-	return prev;
+	return fam_atomic_64_fetch_and_add_unpadded(&address->__v__, increment);
 }
 
-void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
-					       int64_t expected[2],
-					       int64_t desired[2],
-					       int64_t result[2])
+int32_t fam_atomic_32_swap(struct fam_atomic_32 *address, int32_t value)
 {
-	int64_t old[2];
-	char ret;
-	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
-
-	old[0] = fam_atomic_64_read_unpadded(address);
-	old[1] = fam_atomic_64_read_unpadded(address + sizeof(int64_t));
-	ret = cmpxchg16(address, address2, expected[0], expected[1],
-					    		    desired[0], desired[1]);
-
-	if (ret) {
-		result[0] = expected[0];
-		result[1] = expected[1];
-		return;
-	} else {
-		/*
-		 * For now, the results will be the old values read from fam_atomic_64_read().
-		 */
-		result[0] = old[0];
-		result[1] = old[1];
-	}
+	return fam_atomic_32_swap_unpadded(&address->__v__, value);
 }
 
-int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
+int64_t fam_atomic_64_swap(struct fam_atomic_64 *address, int64_t value)
 {
-	int32_t prev;
-	int fd;
-	int64_t offset;
-
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_xadd(address, increment);
-
-	return prev;
+	return fam_atomic_64_swap_unpadded(&address->__v__, value);
 }
 
-int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment)
+void fam_atomic_128_swap(struct fam_atomic_128 *address, int64_t value[2], int64_t result[2])
 {
-	int64_t prev;
-	int fd;
-	int64_t offset;
+	fam_atomic_128_swap_unpadded(address->__v__, value, result);
+}
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
-	
-	prev = x86_xadd(address, increment);
+int32_t fam_atomic_32_compare_and_store(struct fam_atomic_32 *address,
+					int32_t compare,
+					int32_t store)
+{
+	return fam_atomic_32_compare_and_store_unpadded(&address->__v__, compare, store);
+}
 
-	return prev;
+int64_t fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
+					int64_t compare,
+					int64_t store)
+{
+	return fam_atomic_64_compare_and_store_unpadded(&address->__v__, compare, store);
+}
+
+void fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
+				      int64_t compare[2],
+				      int64_t store[2],
+				      int64_t result[2])
+{
+	return fam_atomic_128_compare_and_store_unpadded(address->__v__, compare, store, result);
 }
 
 int32_t fam_atomic_32_read(struct fam_atomic_32 *address)
@@ -442,110 +491,64 @@ void fam_atomic_128_write(struct fam_atomic_128 *address, int64_t value[2])
 	fam_atomic_128_write_unpadded(address->__v__, value);
 }
 
-int32_t fam_atomic_32_swap(struct fam_atomic_32 *address, int32_t value)
-{
-	return fam_atomic_32_swap_unpadded(&address->__v__, value);
-}
-
-int64_t fam_atomic_64_swap(struct fam_atomic_64 *address, int64_t value)
-{
-	return fam_atomic_64_swap_unpadded(&address->__v__, value);
-}
-
-void fam_atomic_128_swap(struct fam_atomic_128 *address, int64_t value[2], int64_t result[2])
-{
-	fam_atomic_128_swap_unpadded(address->__v__, value, result);
-}
-
-int32_t fam_atomic_32_compare_and_store(struct fam_atomic_32 *address,
-				    int32_t expected, int32_t desired)
-{
-	return fam_atomic_32_compare_and_store_unpadded(&address->__v__, expected, desired);
-}
-
-int64_t fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
-					int64_t expected, int64_t desired)
-{
-	return fam_atomic_64_compare_and_store_unpadded(&address->__v__, expected, desired);
-}
-
-void fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
-				      int64_t expected[2],
-				      int64_t desired[2],
-				      int64_t result[2])
-{
-	return fam_atomic_128_compare_and_store_unpadded(address->__v__, expected, desired, result);
-}
-
-
-int32_t fam_atomic_32_fetch_and_add(struct fam_atomic_32 *address, int32_t increment)
-{
-	return fam_atomic_32_fetch_and_add_unpadded(&address->__v__, increment);
-}
-
-int64_t fam_atomic_64_fetch_and_add(struct fam_atomic_64 *address, int64_t increment)
-{
-	return fam_atomic_64_fetch_and_add_unpadded(&address->__v__, increment);
-}
-
 /*
  * Spinlocks
  */
 void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
 {
-        struct fam_spinlock_unpadded inc = {
-                .tickets = {
-                        .head = 0,
-                        .tail = 1
-                }
-        };
+	struct fam_spinlock_unpadded inc = {
+		.tickets = {
+			.head = 0,
+			.tail = 1
+		}
+	};
 
-        /* Fetch the current values and bump the tail by one */
-        inc.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, inc.head_tail);
+	/* Fetch the current values and bump the tail by one */
+	inc.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, inc.head_tail);
 
-        if (inc.tickets.head != inc.tickets.tail) {
-                for (;;) {
-                        inc.tickets.head = fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 0);
-                        if (inc.tickets.head == inc.tickets.tail)
-                                break;
-                }
-        }
-        __sync_synchronize();
+	if (inc.tickets.head != inc.tickets.tail) {
+		for (;;) {
+			inc.tickets.head = fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 0);
+			if (inc.tickets.head == inc.tickets.tail)
+				break;
+		}
+	}
+	__sync_synchronize();
 }
 
-int fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock)
+bool fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock)
 {
-        struct fam_spinlock_unpadded old, new;
-        int ret;
+	struct fam_spinlock_unpadded old, new;
+	bool ret;
 
-        old.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, (int64_t) 0);
-        if (old.tickets.head != old.tickets.tail)
-                return 0;
+	old.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, (int64_t) 0);
+	if (old.tickets.head != old.tickets.tail)
+		return 0;
 
-        new.tickets.head = old.tickets.head;
-        new.tickets.tail = old.tickets.tail + 1;
-        ret = fam_atomic_64_compare_and_store_unpadded(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
-        __sync_synchronize();
-        return ret;
+	new.tickets.head = old.tickets.head;
+	new.tickets.tail = old.tickets.tail + 1;
+	ret = fam_atomic_64_compare_and_store_unpadded(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
+	__sync_synchronize();
+	return ret;
 }
 
 void fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock)
 {
-        (void) fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 1);
-        __sync_synchronize();
+	(void) fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 1);
+	__sync_synchronize();
 }
 
 void fam_spin_lock(struct fam_spinlock *lock)
 {
-        fam_spin_lock_unpadded(&lock->__v__);
+	fam_spin_lock_unpadded(&lock->__v__);
 }
 
-int fam_spin_trylock(struct fam_spinlock *lock)
+bool fam_spin_trylock(struct fam_spinlock *lock)
 {
-        return fam_spin_trylock_unpadded(&lock->__v__);
+	return fam_spin_trylock_unpadded(&lock->__v__);
 }
 
 void fam_spin_unlock(struct fam_spinlock *lock)
 {
-        fam_spin_unlock_unpadded(&lock->__v__);
+	fam_spin_unlock_unpadded(&lock->__v__);
 }
