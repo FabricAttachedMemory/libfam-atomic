@@ -260,8 +260,12 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t result[2])
 {
 	int64_t old[2];
+	int fd;
+	int64_t offset;
 	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	for (;;) {
 		old[0] = fam_atomic_64_read_unpadded(address);
@@ -312,8 +316,12 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 					       int64_t result[2])
 {
 	int64_t old[2];
+	int fd;
+	int64_t offset;
 	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	for (;;) {
 		old[0] = fam_atomic_64_read_unpadded(address);
@@ -373,8 +381,12 @@ int64_t fam_atomic_64_read_unpadded(int64_t *address)
 extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 {
 	int64_t old[2];
+	int fd;
+	int64_t offset;
 	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	for (;;) {
 		old[0] = fam_atomic_64_read_unpadded(address);
@@ -412,8 +424,12 @@ void fam_atomic_64_write_unpadded(int64_t *address, int64_t value)
 void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 {
 	int64_t old[2];
+	int fd;
+	int64_t offset;
 	bool ret;
 	int64_t *address2 = (int64_t *)((int64_t)address + sizeof(int64_t));
+
+	fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	for (;;) {
 		old[0] = fam_atomic_64_read_unpadded(address);
