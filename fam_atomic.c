@@ -49,25 +49,25 @@
 #define __x86_cmpxchg(ptr, old, new, size) \
 	__x86_raw_cmpxchg((ptr), (old), (new), (size), LOCK_PREFIX)
 
-#define __x86_xchg_op(ptr, arg, op, lock)                               \
-        ({                                                              \
-                __typeof__ (*(ptr)) __ret = (arg);                      \
-                switch (sizeof(*(ptr))) {                               \
-                case 4:                                                 \
-                        asm volatile (lock #op "l %0, %1\n"             \
-                                      : "+r" (__ret), "+m" (*(ptr))     \
-                                      : : "memory", "cc");              \
-                        break;                                          \
-                case 8:                                                 \
-                        asm volatile (lock #op "q %q0, %1\n"            \
-                                      : "+r" (__ret), "+m" (*(ptr))     \
-                                      : : "memory", "cc");              \
-                        break;                                          \
-                default:                                                \
-                       fam_atomic_ ## op ## _wrong_size();              \
-                }                                                       \
-                __ret;                                                  \
-        })
+#define __x86_xchg_op(ptr, arg, op, lock)				\
+	({								\
+		__typeof__ (*(ptr)) __ret = (arg);			\
+		switch (sizeof(*(ptr))) {				\
+		case 4:							\
+			asm volatile (lock #op "l %0, %1\n"		\
+				      : "+r" (__ret), "+m" (*(ptr))	\
+				      : : "memory", "cc");		\
+			break;						\
+		case 8:							\
+			asm volatile (lock #op "q %q0, %1\n"		\
+				      : "+r" (__ret), "+m" (*(ptr))	\
+				      : : "memory", "cc");		\
+			break;						\
+		default:						\
+		       fam_atomic_ ## op ## _wrong_size();		\
+		}							\
+		__ret;							\
+	})
 
 #define __x86_xadd(ptr, inc, lock)	__x86_xchg_op((ptr), (inc), xadd, lock)
 
@@ -75,21 +75,21 @@
 #define x86_xchg(ptr, v)		__x86_xchg_op((ptr), (v), xchg, "")
 #define x86_xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
 
-#define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)                        \
-({                                                                      \
-        bool __ret;                                                     \
-        __typeof__(*(p1)) __old1 = (o1), __new1 = (n1);                 \
-        __typeof__(*(p2)) __old2 = (o2), __new2 = (n2);                 \
-        asm volatile(pfx "cmpxchg%c4b %2; sete %0"                      \
-                     : "=a" (__ret), "+d" (__old2),                     \
-                       "+m" (*(p1)), "+m" (*(p2))                       \
-                     : "i" (2 * sizeof(long)), "a" (__old1),            \
-                       "b" (__new1), "c" (__new2));                     \
-        __ret;                                                          \
+#define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)			\
+({									\
+	bool __ret;							\
+	__typeof__(*(p1)) __old1 = (o1), __new1 = (n1);			\
+	__typeof__(*(p2)) __old2 = (o2), __new2 = (n2);			\
+	asm volatile(pfx "cmpxchg%c4b %2; sete %0"			\
+		     : "=a" (__ret), "+d" (__old2),			\
+		       "+m" (*(p1)), "+m" (*(p2))			\
+		     : "i" (2 * sizeof(long)), "a" (__old1),		\
+		       "b" (__new1), "c" (__new2));			\
+	__ret;								\
 })
 
 #define cmpxchg16(p1, p2, o1, o2, n1, n2) \
-        __cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
+	__cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
 
 /* Each node represents a registered NVM atomic region. */
 struct node {
@@ -144,6 +144,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length, int fd,
 	new_node->fd = fd;
 	new_node->region_offset = offset;
 
+	/* TODO: Detect overlapping regions? */
 	list_add(&fam_atomic_region_list, new_node);
 
 	return 0;
@@ -172,12 +173,10 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 
 /*
  * Given an address to an fam-atomic, find the associated fd and offset.
- * This is done by searching the list: fam_atomic_region_list.
- * The NVM region containing the fam-atomic must have been registered in
- * order for this function to succeed.
- *
- * If the region containing the atomic has not been registered, then this
- * function will generate a segmentation fault.
+ * This is done by searching the list: fam_atomic_region_list. The NVM region
+ * containing the fam-atomic must have been registered in order for this
+ * function to succeed. If the region containing the atomic has not been
+ * registered, then this function will generate a segmentation fault.
  */
 static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
@@ -196,7 +195,9 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 		/*
 		 * Generate a segmentation fault.
 		 */
-		printf("Error: NVM region not registered as fam-atomic region?\n");
+		printf("ERROR: fam_atomic variable used without being registered. NVM regions containing\n"
+		printf("       fam_atomics must be registered with fam_atomic_register_region() before\n");
+		printf("       the fam_atomics within the region can be used\n");
 		kill(0, SIGSEGV);
 	}
 
@@ -360,7 +361,7 @@ int32_t fam_atomic_32_read_unpadded(int32_t *address)
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	value =  x86_xadd(address, 0);
+	value = x86_xadd(address, 0);
 
 	return value;
 }
@@ -484,7 +485,7 @@ void fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
 				      int64_t store[2],
 				      int64_t result[2])
 {
-	return fam_atomic_128_compare_and_store_unpadded(address->__v__, compare, store, result);
+	fam_atomic_128_compare_and_store_unpadded(address->__v__, compare, store, result);
 }
 
 int32_t fam_atomic_32_read(struct fam_atomic_32 *address)

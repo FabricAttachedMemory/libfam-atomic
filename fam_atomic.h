@@ -2,12 +2,12 @@
 #define _FAM_ATOMIC_H_
 
 /*
- * The fam-atomic and fam-spinlock APIs. These can be used across
- * all SOCs on the system and between different cache coherence
- * domains. fam-atomic and fam-spinlock variables should not share
- * cachelines with non fam-atomic or non fam-spinlock data, and
- * NVM regions containing these variables must be registered before
- * they can be used.
+ * fam-atomic and fam-spinlock APIs. These can be used for
+ * synchronization across all SOCs on the system and between
+ * different cache coherence domains. fam-atomic and fam-spinlock
+ * variables should not share cachelines with non fam-atomic or
+ * non fam-spinlock data, and NVM regions containing these variables
+ * must be registered before they can be used.
  */
 #include <stdint.h>
 #include <stdbool.h>
