@@ -61,9 +61,9 @@ struct fam_atomic_args_128 {
  *
  * @region_start: Address of the start of the NVM region.
  * @region_length: The length of the NVM region.
- * @fd: The file descriptor associated with the NVM region.
+ * @fd: The file descriptor associated with the open NVM region.
  * @offset: The offset from the start of the file.
- *	    (If address, is the start of the file, then offset can be 0.
+ *	    (If "region_start", is at the start of the file, then offset is 0.
  *
  * Return: 0 if the register function succeeds, else a negative value.
  */
