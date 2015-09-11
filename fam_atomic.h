@@ -334,7 +334,7 @@ struct fam_spinlock_unpadded {
 	};
 };
 
-#define FAM_SPINLOCK_UNPADDED_INITIALIZER       { .head_tail = 0 }
+#define FAM_SPINLOCK_UNPADDED_INITIALIZER ((struct fam_spinlock_unpadded) { .head_tail = 0 })
 
 static inline void
 fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
@@ -387,7 +387,7 @@ struct fam_spinlock {
 	struct fam_spinlock_unpadded __v__ __attribute((__aligned__(64)));
 };
 
-#define FAM_SPINLOCK_INITIALIZER	{ .__v__ = { .head_tail = 0 } }
+#define FAM_SPINLOCK_INITIALIZER ((struct fam_spinlock) { .__v__ = { .head_tail = 0 } })
 
 static inline void
 fam_spin_lock(struct fam_spinlock *lock)
