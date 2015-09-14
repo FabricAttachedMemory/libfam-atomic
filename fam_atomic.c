@@ -209,7 +209,7 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
 
 			if (ret) {
 				*result1 = old[0];
-				*result1 = old[1];
+				*result2 = old[1];
 				break;
 			}
 		}
