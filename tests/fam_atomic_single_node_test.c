@@ -66,6 +66,11 @@ release_swap_64(struct fam_atomic_64 *atomic)
 	fam_atomic_64_write(atomic, 0);
 }
 
+/*
+ * This is the main data structure containing regular variables
+ * that get modified by multiple processes, and fam_atomics which
+ * synchronizes access to those variables.
+ */
 struct data {
 	int64_t w1;
 	int64_t w2;
@@ -93,7 +98,7 @@ int main(int argc, char **argv)
 		   			    MAP_SHARED, fd, 0);
 
 	/*
-	 * Register the region as an fam-atomic region after the mmap.
+	 * Register the region as an fam-atomic region after the mmap operation.
 	 */
 	if (fam_atomic_register_region(data, sizeof(struct data), 0, 0)) {
 		fprintf(stderr, "unable to register atomic region\n");
@@ -115,6 +120,9 @@ int main(int argc, char **argv)
 
 	printf("\nRunning single node fam atomic test:\n\n");
 
+	/*
+	 * Create nr_process to run the tests.
+	 */
 	for (i = 0; i < nr_process; i++) {
 		pid = fork();
 		if (pid == 0) {
@@ -124,9 +132,9 @@ int main(int argc, char **argv)
 
 	/*
 	 * The main process will wait until the rest of the processes
-	 * finish running the tests. It will print the current status
-	 * of the run, as well as report whether or not the test
-	 * was succesful.
+	 * finish running the actual test. It will print the current
+	 * status of the run, and report whether or not the test was
+	 * successful when the test completes.
 	 */
 	if (pid != 0) {
 		int i;
@@ -172,7 +180,8 @@ int main(int argc, char **argv)
 		while (wait(NULL) >= 0);
 
 		/*
-		 * Verify all words in the region is 0.
+		 * Verify all words in the region are 0 and print whether or not
+		 * the test completed successfully.
 		 */
 		if (data->w1 == (nr_process * nr_increments) &&
 		    data->w2 == (nr_process * nr_increments) &&
@@ -188,9 +197,10 @@ int main(int argc, char **argv)
 	}
 
 	/*
-	 * Wait until all other processes have been created so that they
-	 * all begin the test t the same time. The "main" process will
-	 * signal this by setting data->start.
+	 * All created processes, excluding the main process will enter
+	 * this code path. Here, we wait until all processes have been
+	 * created so that they all begin the test at the same time. The
+	 * "main" process will signal this by setting data->start.
 	 */
 	while (!data->start);
 
