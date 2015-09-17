@@ -578,3 +578,47 @@ void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 
 	fam_atomic_128_swap_unpadded(address, value, result);
 }
+
+void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
+{
+        struct fam_spinlock_unpadded inc = {
+                .tickets = {
+                        .head = 0,
+                        .tail = 1
+                }
+        };
+
+        /* Fetch the current values and bump the tail by one */
+        inc.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, inc.head_tail);
+
+        if (inc.tickets.head != inc.tickets.tail) {
+                for (;;) {
+                        inc.tickets.head = fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 0);
+                        if (inc.tickets.head == inc.tickets.tail)
+                                break;
+                }
+        }
+        __sync_synchronize();
+}
+
+bool fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock)
+{
+        struct fam_spinlock_unpadded old, new;
+        bool ret;
+
+        old.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, (int64_t) 0);
+        if (old.tickets.head != old.tickets.tail)
+                return 0;
+
+        new.tickets.head = old.tickets.head;
+        new.tickets.tail = old.tickets.tail + 1;
+        ret = fam_atomic_64_compare_and_store_unpadded(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
+        __sync_synchronize();
+        return ret;
+}
+
+void fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock)
+{
+        (void) fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 1);
+        __sync_synchronize();
+}

@@ -336,52 +336,14 @@ struct fam_spinlock_unpadded {
 
 #define FAM_SPINLOCK_UNPADDED_INITIALIZER ((struct fam_spinlock_unpadded) { .head_tail = 0 })
 
-static inline void
-fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
-{
-	struct fam_spinlock_unpadded inc = {
-		.tickets = {
-			.head = 0,
-			.tail = 1
-		}
-	};
+extern void
+fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock);
 
-	/* Fetch the current values and bump the tail by one */
-	inc.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, inc.head_tail);
+extern bool
+fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock);
 
-	if (inc.tickets.head != inc.tickets.tail) {
-		for (;;) {
-			inc.tickets.head = fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 0);
-			if (inc.tickets.head == inc.tickets.tail)
-				break;
-		}
-	}
-	__sync_synchronize();
-}
-
-static inline bool
-fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock)
-{
-	struct fam_spinlock_unpadded old, new;
-	bool ret;
-
-	old.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, (int64_t) 0);
-	if (old.tickets.head != old.tickets.tail)
-		return 0;
-
-	new.tickets.head = old.tickets.head;
-	new.tickets.tail = old.tickets.tail + 1;
-	ret = fam_atomic_64_compare_and_store_unpadded(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
-	__sync_synchronize();
-	return ret;
-}
-
-static inline void
-fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock)
-{
-	(void) fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 1);
-	__sync_synchronize();
-}
+extern void
+fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock);
 
 struct fam_spinlock {
 	struct fam_spinlock_unpadded __v__ __attribute((__aligned__(64)));
@@ -404,7 +366,7 @@ fam_spin_trylock(struct fam_spinlock *lock)
 static inline void
 fam_spin_unlock(struct fam_spinlock *lock)
 {
-	return fam_spin_unlock_unpadded(&lock->__v__);
+	fam_spin_unlock_unpadded(&lock->__v__);
 }
 
 #endif
