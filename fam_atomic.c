@@ -30,6 +30,10 @@
 #define u32 unsigned int
 #define u64 unsigned long long
 
+void fam_atomic_compare_exchange_wrong_size(void);
+void fam_atomic_xadd_wrong_size(void);
+void fam_atomic_xchg_wrong_size(void);
+
 #define __x86_raw_cmpxchg(ptr, old, new, size, lock)		\
 ({								\
 	__typeof__(*(ptr)) __ret;				\
@@ -237,7 +241,7 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
  *	 It is named __ioctl() instead of ioctl() to to avoid issues
  *	 with multiple declarations with this and the "real" ioctl().
  */
-static inline __ioctl(int fd, unsigned int opt, unsigned long args)
+static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 {
 	if (opt == FAM_ATOMIC_32_FETCH_AND_ADD ||
 	    opt == FAM_ATOMIC_32_SWAP ||
