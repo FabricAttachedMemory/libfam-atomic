@@ -5,6 +5,9 @@
 #include <sys/mman.h>
 #include <libgen.h>
 #include <fam_atomic.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static inline void
 acquire_compare_and_store_32(struct fam_atomic_32 *atomic)
@@ -80,7 +83,7 @@ struct data {
 	struct fam_atomic_64 compare_store_64;
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
-	bool start;
+	struct fam_atomic_32 start;
 	int64_t total_iterations;
 };
 
@@ -93,6 +96,7 @@ int main(int argc, char **argv)
 	int pid;
 
 	int fd = open("fam_atomic_test.data", O_CREAT | O_RDWR, 0666);
+	unlink("fam_atomic_test.data");
 	ftruncate(fd, sizeof(struct data));
 	data = mmap(0, sizeof(struct data), PROT_READ | PROT_WRITE,
 		   			    MAP_SHARED, fd, 0);
@@ -113,7 +117,7 @@ int main(int argc, char **argv)
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
-	data->start = false;
+	fam_atomic_32_write(&data->start, 0);
 	data->total_iterations = 0;
 
 	__sync_synchronize();
@@ -144,7 +148,7 @@ int main(int argc, char **argv)
 		 * All processes have been created. Signal the other
 		 * processes to start test.
 		 */
-		data->start = true;
+		fam_atomic_32_write(&data->start, 1);
 
 		while (data->total_iterations < nr_increments * nr_process) {
 			sleep(1);
@@ -202,7 +206,8 @@ int main(int argc, char **argv)
 	 * created so that they all begin the test at the same time. The
 	 * "main" process will signal this by setting data->start.
 	 */
-	while (!data->start);
+	while (!fam_atomic_32_read(&data->start))
+		usleep(100 * 1000);
 
 	for (i = 0; i < nr_increments; i++) {
 		/*
