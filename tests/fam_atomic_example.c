@@ -16,7 +16,7 @@ main(int argc, char **argv) {
 	int fd = open("/lfs/test.dat", O_CREAT | O_RDWR, 0666);
 	ftruncate(fd, sizeof(struct data));
 	struct data *data = mmap(0, sizeof(struct data), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	fam_atomic_register_region(data, sizeof(struct data), 0, 0);
+	fam_atomic_register_region(data, sizeof(struct data), fd, 0);
 	fam_atomic_64_swap(&data->atomic, 0);
 	int64_t prev = fam_atomic_64_fetch_and_add(&data->atomic, 12);
 	assert(prev == 0);

@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register the region as an fam-atomic region after the mmap operation.
 	 */
-	if (fam_atomic_register_region(data, sizeof(struct data), 0, 0)) {
+	if (fam_atomic_register_region(data, sizeof(struct data), fd, 0)) {
 		fprintf(stderr, "unable to register atomic region\n");
 		return 3;
 	}
