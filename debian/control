@@ -1,0 +1,13 @@
+Source: libfam-atomic
+Maintainer: Jason Low <jason.low2@hp.com>
+Section: misc
+Priority: optional
+Build-Depends: debhelper (>= 9)
+
+Package: libfam-atomic
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Fabric attached memory atomic library
+ This package contains the fam_atomic library, which provides
+ access to the fabric attached memory atomic operations.
+

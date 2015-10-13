@@ -1,0 +1,5 @@
+libfam-atomic (1.2-1) stable; urgency=low
+
+  * Release #2. Adds registration functions, spinlocks, complete 16 byte atomic APIs
+
+ -- Jason Low <jason.low2@hp.com>  Wed, 16 Sep 2015 23:57:18 -0600
