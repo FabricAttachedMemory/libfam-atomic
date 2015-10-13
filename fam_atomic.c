@@ -570,18 +570,12 @@ extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 
 void fam_atomic_32_write_unpadded(int32_t *address, int32_t value)
 {
-	int fd;
-	int64_t offset;
-
 	/* This is a write operation, so no need to return prev value. */
 	(void) fam_atomic_32_swap_unpadded(address, value);
 }
 
 void fam_atomic_64_write_unpadded(int64_t *address, int64_t value)
 {
-	int fd;
-	int64_t offset;
-
 	/* This is a write operation, so no need to return prev value. */
 	(void) fam_atomic_64_swap_unpadded(address, value);
 }
