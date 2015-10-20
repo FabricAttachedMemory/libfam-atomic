@@ -1,0 +1,3 @@
+usr/include/*
+usr/lib/*/libfam_atomic.so
+usr/lib/*/pkgconfig/fam_atomic.pc
