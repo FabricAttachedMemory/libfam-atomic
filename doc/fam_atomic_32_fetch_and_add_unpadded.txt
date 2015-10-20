@@ -1,0 +1,29 @@
+fam_atomic_32_fetch_and_add_unpadded(3)
+=======================================
+:doctype: manpage
+
+NAME
+----
+        fam_atomic_32_fetch_and_add_unpadded - unpadded 32 bit fam atomic fetch and add
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        int32_t
+        fam_atomic_32_fetch_and_add_unpadded(int32_t *address,
+                                             int32_t increment);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'address', which is a pointer to an unpadded 32 bit fam
+        atomic variable, reads the contents of the atomic variable, adds
+        'increment' to the variable, and returns the original value
+        that was read.
+
+RETURN VALUE
+------------
+        Returns the previous value of the fam atomic (before 'increment'
+        was added).

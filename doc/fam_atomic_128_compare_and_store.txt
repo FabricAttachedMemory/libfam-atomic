@@ -1,0 +1,40 @@
+fam_atomic_128_compare_and_store(3)
+===================================
+:doctype: manpage
+
+NAME
+----
+        fam_atomic_128_compare_and_store - 128 bit fam atomic compare and store
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        void
+        fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
+                                         int64_t compare[2],
+                                         int64_t store[2],
+                                         int64_t result[2]);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'address', which is a pointer to a 128 bit fam atomic 
+        variable, reads the contents of the atomic variable and
+        checks if it is equal to 'compare'. If true, the variable gets
+        set to 'store'. If false, the variable does not get modified.
+        The original value that was read gets stored into 'result'.
+
+	'compare', 'store,' and 'result' are all arrays of two
+        64 bit integers representing 128 bit variables, where
+        index [0] represents the first 64 bits and index [1] represents
+        the last 64 bits.
+
+        After calling this function, applications would typically
+        check if 'result' is equivalent to 'compare' to verify
+        if the operation succeeded.
+
+RETURN VALUE
+------------
+        None, the previous value gets stored in 'result'.

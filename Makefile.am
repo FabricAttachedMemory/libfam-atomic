@@ -14,7 +14,7 @@
 #  Lesser General Public License for more details.
 #
 
-SUBDIRS=. tests
+SUBDIRS=. tests doc
 
 ACLOCAL_AMFLAGS = -I m4
 

@@ -1,0 +1,26 @@
+fam_spin_unlock(3)
+==================
+:doctype: manpage
+
+NAME
+----
+        fam_spin_unlock - Releases an fam spinlock
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        void
+        fam_spin_unlock(struct fam_spinlock *lock);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'lock', which is a pointer to an fam spinlock, releases
+        the lock that was previously acquired from fam_spin_lock(lock)
+        or a successful fam_spin_trylock(lock).
+
+RETURN VALUE
+------------
+        None

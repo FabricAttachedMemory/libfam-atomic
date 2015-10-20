@@ -1,0 +1,30 @@
+fam_spin_lock_unpadded(3)
+=========================
+:doctype: manpage
+
+NAME
+----
+        fam_spin_lock_unpadded - Acquires an unpadded fam spinlock
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        void
+        fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'lock', which is a pointer to an unpadded fam spinlock,
+        tries to acquire the lock. If the lock has already been acquired
+        by another thread, the current thread will continue to spin
+        until it has acquired the lock.
+
+        Used for obtaining mutual exclusion. Only 1 thread could obtain
+        the lock at a time.
+
+RETURN VALUE
+------------
+        None

@@ -1,0 +1,37 @@
+fam_atomic_unregister_region(3)
+===============================
+:doctype: manpage
+
+NAME
+----
+        fam_atomic_unregister_region - unregisters FAM area with the library
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        void
+        fam_atomic_unregister_region(void *region_start,
+                                     size_t region_length);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+	Unregisters an FAM area. This should be called on a region just
+        before it gets unmapped if the region was previously registered
+        with fam_atomic_register_region().
+
+        Applications must unregister the exact region that was registered
+        with fam_atomic_register_region(). The library does not support
+        unregistering subsets or parts of a registered region.
+
+        region_start: Pointer to start of region. Should match the value
+                      given to fam_atomic_register_region() when the
+                      region was registered.
+
+        region_length: Size of the region to unregister.
+
+RETURN VALUE
+------------
+        None

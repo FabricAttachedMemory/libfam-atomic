@@ -24,10 +24,8 @@ dnl                               Versioning
 dnl ==========================================================================
 
 dnl This is the package version number, not the shared library
-dnl version.  This same version number must appear in fontconfig/fontconfig.h
-dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
-dnl not possible to extract the version number here from fontconfig.h
-AC_INIT([fam_atomic], [1.2], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
+dnl version.
+AC_INIT([fam_atomic], [1.3], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
 AM_INIT_AUTOMAKE([1.11 parallel-tests])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
@@ -160,6 +158,7 @@ dnl
 AC_CONFIG_FILES([
 Makefile
 tests/Makefile
+doc/Makefile
 fam_atomic.pc
 ])
 AC_OUTPUT

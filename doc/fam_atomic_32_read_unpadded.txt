@@ -1,0 +1,26 @@
+fam_atomic_32_read_unpadded(3)
+==============================
+:doctype: manpage
+
+NAME
+----
+        fam_atomic_32_read_unpadded - unpadded 32 bit fam atomic read
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        int32_t
+        fam_atomic_32_read_unpadded(int32_t *address);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'address', which is a pointer to an unpadded 32 bit fam
+        atomic variable, reads the contents of the atomic variable and
+        returns that value. 
+
+RETURN VALUE
+------------
+        Returns the value of the fam atomic that was read.

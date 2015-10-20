@@ -1,0 +1,34 @@
+fam_atomic_64_compare_and_store(3)
+==================================
+:doctype: manpage
+
+NAME
+----
+        fam_atomic_64_compare_and_store - 64 bit fam atomic compare and store
+
+SYNOPSIS
+--------
+        #include <fam_atomic.h>
+
+        int64_t
+        fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
+                                        int64_t compare,
+                                        int64_t store);
+
+        cc ... -lfam_atomic
+
+DESCRIPTION
+-----------
+        Given 'address', which is a pointer to a 64 bit fam atomic 
+        variable, reads the contents of the atomic variable and
+        checks if it is equal to 'compare'. If true, the variable gets
+        set to 'store'. If false, the variable does not get modified.
+        Returns the original value that was read.
+
+        After calling this function, applications would typically
+        check if the return value is equivalent to 'compare' to
+        verify if the operation succeeded.
+
+RETURN VALUE
+------------
+        Returns the previous value of the fam atomic.
