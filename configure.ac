@@ -1,18 +1,18 @@
-dnl 
-dnl  fontconfig/configure.in
-dnl 
-dnl 
-dnl  Copyright © 2015 Keith Packard <keithp@keithp.com>
-dnl 
-dnl  This program is free software; you can redistribute it and/or modify
-dnl  it under the terms of the GNU General Public License as published by
-dnl  the Free Software Foundation, either version 2 of the License, or
-dnl  (at your option) any later version.
-dnl 
+dnl
+dnl  Copyright © 2015, Hewlett Packard Enterprise Development LP
+dnl
+dnl  Author: Keith Packard <packard@hpe.com>
+dnl
+dnl  This program is free software; you can redistribute it and/or
+dnl  modify it under the terms of the GNU Lesser General Public License
+dnl  as published by the Free Software Foundation, either version 3 of
+dnl  the License, or (at your option) any later version.
+dnl
 dnl  This program is distributed in the hope that it will be useful, but
 dnl  WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-dnl  General Public License for more details.
+dnl  Lesser General Public License for more details.
+dnl
 dnl
 dnl
 dnl Process this file with autoconf to create configure.
@@ -20,7 +20,7 @@ dnl Process this file with autoconf to create configure.
 AC_PREREQ(2.61)
 
 dnl ==========================================================================
-dnl                               Versioning              
+dnl                               Versioning
 dnl ==========================================================================
 
 dnl This is the package version number, not the shared library

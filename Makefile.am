@@ -1,16 +1,17 @@
-# 
 #
-# Copyright © 2015 Keith Packard <keithp@keithp.com>
+#  Copyright © 2015, Hewlett Packard Enterprise Development LP
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+#  Author: Keith Packard <packard@hpe.com>
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public License
+#  as published by the Free Software Foundation, either version 3 of
+#  the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  Lesser General Public License for more details.
 #
 
 SUBDIRS=. tests
@@ -82,8 +83,9 @@ libfam_atomic_la_SOURCES = \
 
 lib_LTLIBRARIES = libfam_atomic.la
 
+include_HEADERS = fam_atomic.h
+
 libfam_atomic_la_LDFLAGS =			\
 	-version-info @LIBT_VERSION_INFO@ -no-undefined $(export_symbols)
 
 libfam_atomic_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT_LIBS)
-
