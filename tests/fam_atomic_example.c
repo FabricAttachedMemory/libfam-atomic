@@ -13,7 +13,9 @@ struct data {
 
 int
 main(int argc, char **argv) {
-	int fd = open("/lfs/test.dat", O_CREAT | O_RDWR, 0666);
+	char *file = "test.dat";
+	int fd = open(file, O_CREAT | O_RDWR, 0666);
+	unlink(file);
 	ftruncate(fd, sizeof(struct data));
 	struct data *data = mmap(0, sizeof(struct data), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	fam_atomic_register_region(data, sizeof(struct data), fd, 0);
@@ -30,6 +32,5 @@ main(int argc, char **argv) {
 	assert(fam_spin_trylock(&data->spinlock));
 	fam_spin_unlock(&data->spinlock);
 	fam_atomic_unregister_region(data, sizeof(struct data));
-	unlink("/lfs/test.dat");
 	return 0;
 }
