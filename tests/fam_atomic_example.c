@@ -33,20 +33,42 @@ main(int argc, char **argv) {
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
 	unlink(file);
 	ftruncate(fd, sizeof(struct data));
-	struct data *data = mmap(0, sizeof(struct data), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	struct data *data = mmap(0, sizeof(struct data),
+				 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	fam_atomic_register_region(data, sizeof(struct data), fd, 0);
-	fam_atomic_64_swap(&data->atomic, 0);
+
+	/* Set to zero */
+	fam_atomic_64_write(&data->atomic, 0);
+
+	/* Swap with 12, make sure previous was zero */
 	int64_t prev = fam_atomic_64_fetch_and_add(&data->atomic, 12);
 	assert(prev == 0);
+
+	/* Make sure value is now 12 */
 	int64_t next = fam_atomic_64_read(&data->atomic);
 	assert(next == 12);
 
+	/* Initialize spinlock */
 	data->spinlock = FAM_SPINLOCK_INITIALIZER;
+
+	/* Lock it */
 	fam_spin_lock(&data->spinlock);
-	assert(!fam_spin_trylock(&data->spinlock));
+
+	/* Make sure trylock fails now */
+	bool trylock_locked = fam_spin_trylock(&data->spinlock);
+	assert(!trylock_locked);
+
+	/* Unlock */
 	fam_spin_unlock(&data->spinlock);
-	assert(fam_spin_trylock(&data->spinlock));
+
+	/* Make sure trylock succeeds now */
+	bool trylock_unlocked = fam_spin_trylock(&data->spinlock);
+	assert(trylock_unlocked);
+
+	/* Unlock */
 	fam_spin_unlock(&data->spinlock);
+
+	/* Clean up */
 	fam_atomic_unregister_region(data, sizeof(struct data));
 	return 0;
 }
