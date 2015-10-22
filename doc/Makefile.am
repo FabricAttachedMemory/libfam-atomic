@@ -1,6 +1,7 @@
 SUFFIXES = .txt .3
 
 DOC_FILES= \
+	fam_atomic.txt \
 	fam_atomic_128_compare_and_store.txt \
 	fam_atomic_128_compare_and_store_unpadded.txt \
 	fam_atomic_128_read.txt \
@@ -46,3 +47,4 @@ EXTRA_DIST = $(DOC_FILES)
 .txt.3:
 	a2x -L -d manpage -f manpage -D . $(srcdir)/$*.txt
 
+fam_atomic.3: ../tests/fam_atomic_example.c
