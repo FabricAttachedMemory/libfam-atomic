@@ -4,26 +4,27 @@ fam_atomic_32_swap(3)
 
 NAME
 ----
-        fam_atomic_32_swap - 32 bit fam atomic swap
+fam_atomic_32_swap - 32 bit fam atomic swap
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        int32_t
-        fam_atomic_32_swap(struct fam_atomic_32 *address,
-                           int32_t value);
+int32_t
+fam_atomic_32_swap(struct fam_atomic_32 *address,
+		   int32_t value);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'address', which is a pointer to a 32 bit fam atomic 
-        variable, reads the contents of the atomic variable,
-        sets the variable to 'value', and returns the original
-        value that was read.
+Given 'address', which is a pointer to a 32 bit fam atomic 
+variable, reads the contents of the atomic variable,
+sets the variable to 'value', and returns the original
+value that was read.
 
 RETURN VALUE
 ------------
-        Returns the previous value of the fam atomic (before it
-        was set to 'value').
+Returns the previous value of the fam atomic (before it
+was set to 'value').

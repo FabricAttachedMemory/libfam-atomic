@@ -4,24 +4,25 @@ fam_atomic_32_write(3)
 
 NAME
 ----
-        fam_atomic_32_write - 32 bit fam atomic write
+fam_atomic_32_write - 32 bit fam atomic write
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        void
-        fam_atomic_32_write(struct fam_atomic_32 *address,
-                            int32_t value);
+void
+fam_atomic_32_write(struct fam_atomic_32 *address,
+		    int32_t value);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'address', which is a pointer to a 32 bit fam atomic 
-        variable, sets the atomic variable to 'value'. This is
-        essentially an atomic swap that does not return a value.
+Given 'address', which is a pointer to a 32 bit fam atomic 
+variable, sets the atomic variable to 'value'. This is
+essentially an atomic swap that does not return a value.
 
 RETURN VALUE
 ------------
-        None
+None

@@ -4,26 +4,27 @@ fam_atomic_32_fetch_and_add(3)
 
 NAME
 ----
-        fam_atomic_32_fetch_and_add - 32 bit fam atomic fetch and add
+fam_atomic_32_fetch_and_add - 32 bit fam atomic fetch and add
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        int32_t
-        fam_atomic_32_fetch_and_add(struct fam_atomic_32 *address,
-                                    int32_t increment);
+int32_t
+fam_atomic_32_fetch_and_add(struct fam_atomic_32 *address,
+			    int32_t increment);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'address', which is a pointer to a 32 bit fam atomic 
-        variable, reads the contents of the atomic variable, adds
-        'increment' to the variable, and returns the original value
-        that was read.
+Given 'address', which is a pointer to a 32 bit fam atomic 
+variable, reads the contents of the atomic variable, adds
+'increment' to the variable, and returns the original value
+that was read.
 
 RETURN VALUE
 ------------
-        Returns the previous value of the fam atomic (before 'increment'
-        was added).
+Returns the previous value of the fam atomic (before 'increment'
+was added).

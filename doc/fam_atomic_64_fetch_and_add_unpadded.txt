@@ -4,26 +4,27 @@ fam_atomic_64_fetch_and_add_unpadded(3)
 
 NAME
 ----
-        fam_atomic_64_fetch_and_add_unpadded - unpadded 64 bit fam atomic fetch and add
+fam_atomic_64_fetch_and_add_unpadded - unpadded 64 bit fam atomic fetch and add
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        int64_t
-        fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
-                                             int64_t increment);
+int64_t
+fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
+				     int64_t increment);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'address', which is a pointer to an unpadded 64 bit fam
-        atomic variable, reads the contents of the atomic variable, adds
-        'increment' to the variable, and returns the original value
-        that was read.
+Given 'address', which is a pointer to an unpadded 64 bit fam
+atomic variable, reads the contents of the atomic variable, adds
+'increment' to the variable, and returns the original value
+that was read.
 
 RETURN VALUE
 ------------
-        Returns the previous value of the fam atomic (before 'increment'
-        was added).
+Returns the previous value of the fam atomic (before 'increment'
+was added).

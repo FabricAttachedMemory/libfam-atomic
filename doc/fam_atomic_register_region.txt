@@ -4,39 +4,40 @@ fam_atomic_register_region(3)
 
 NAME
 ----
-        fam_atomic_register_region - registers FAM area with the library
+fam_atomic_register_region - registers FAM area with the library
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        int fam_atomic_register_region(void *region_start,
-                                       size_t region_length,
-                                       int fd,
-                                       off_t offset);
+int fam_atomic_register_region(void *region_start,
+			       size_t region_length,
+			       int fd,
+			       off_t offset);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Memory regions containing fam atomics and/or fam locks must be
-        registered using some of the parameters from the mmap operation
-        before any of the atomics or locks within the region can be used.
-        It is recommended that this gets called right after the mmap
-        operation to register the entire mapped region.
+Memory regions containing fam atomics and/or fam locks must be
+registered using some of the parameters from the mmap operation
+before any of the atomics or locks within the region can be used.
+It is recommended that this gets called right after the mmap
+operation to register the entire mapped region.
 
-        region_start: Pointer to start of region. This is usually the
-                      value that was returned by mmap().
+region_start: Pointer to start of region. This is usually the
+value that was returned by mmap().
 
-        region_length: Size of the region. Should match value given
-                       to mmap().
+region_length: Size of the region. Should match value given
+to mmap().
 
-        fd: The file descriptor associated with the region. Should match
-            the fd given to mmap().
+fd: The file descriptor associated with the region. Should match
+the fd given to mmap().
 
-        offset: The offset between the start of the file and 'region_start'.
-                Should match offset value given to mmap().
+offset: The offset between the start of the file and 'region_start'.
+Should match offset value given to mmap().
 
 RETURN VALUE
 ------------
-        Returns 0 on success, or a negative value on failure.
+Returns 0 on success, or a negative value on failure.

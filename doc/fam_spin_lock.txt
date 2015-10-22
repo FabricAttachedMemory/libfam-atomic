@@ -4,27 +4,28 @@ fam_spin_lock(3)
 
 NAME
 ----
-        fam_spin_lock - Acquires an fam spinlock
+fam_spin_lock - Acquires an fam spinlock
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        void
-        fam_spin_lock(struct fam_spinlock *lock);
+void
+fam_spin_lock(struct fam_spinlock *lock);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'lock', which is a pointer to an fam spinlock, tries to
-        acquire the lock. If the lock has already been acquired by
-        another thread, the current thread will continue to spin until
-        it has acquired the lock.
+Given 'lock', which is a pointer to an fam spinlock, tries to
+acquire the lock. If the lock has already been acquired by
+another thread, the current thread will continue to spin until
+it has acquired the lock.
 
-        Used for obtaining mutual exclusion. Only 1 thread could obtain
-        the lock at a time.
+Used for obtaining mutual exclusion. Only 1 thread could obtain
+the lock at a time.
 
 RETURN VALUE
 ------------
-        None
+None

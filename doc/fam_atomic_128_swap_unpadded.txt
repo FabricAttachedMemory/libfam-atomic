@@ -4,30 +4,31 @@ fam_atomic_128_swap_unpadded(3)
 
 NAME
 ----
-        fam_atomic_128_swap_unpadded - unpadded 128 bit fam atomic swap
+fam_atomic_128_swap_unpadded - unpadded 128 bit fam atomic swap
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        void
-        fam_atomic_128_swap_unpadded(int64_t *address,
-                                     int64_t value[2],
-                                     int64_t result[2]);
+void
+fam_atomic_128_swap_unpadded(int64_t *address,
+			     int64_t value[2],
+			     int64_t result[2]);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'address', which is a pointer to an unpadded 128 bit fam
-        atomic variable, reads the contents of the atomic variable,
-        sets the variable to 'value', and stores the original value
-        that was read into 'result'.
+Given 'address', which is a pointer to an unpadded 128 bit fam
+atomic variable, reads the contents of the atomic variable,
+sets the variable to 'value', and stores the original value
+that was read into 'result'.
 
-	'value' and 'result' are both arrays of two 64 bit integers
-        representing 128 bit variables, where index [0] represents the
-        first 64 bits and index [1] represents the last 64 bits.
+'value' and 'result' are both arrays of two 64 bit integers
+representing 128 bit variables, where index [0] represents the
+first 64 bits and index [1] represents the last 64 bits.
 
 RETURN VALUE
 ------------
-        None, the previous value gets stored in 'result'.
+None, the previous value gets stored in 'result'.

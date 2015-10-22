@@ -4,24 +4,25 @@ fam_spin_trylock_unpadded(3)
 
 NAME
 ----
-        fam_spin_trylock_unpadded - Tries once to acquire an unpadded fam spinlock
+fam_spin_trylock_unpadded - Tries once to acquire an unpadded fam spinlock
 
 SYNOPSIS
 --------
-        #include <fam_atomic.h>
+....
+#include <fam_atomic.h>
 
-        bool
-        fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock);
+bool
+fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock);
 
-        cc ... -lfam_atomic
-
+cc ... -lfam_atomic
+....
 DESCRIPTION
 -----------
-        Given 'lock', which is a pointer to an unpadded fam spinlock, tries
-        once to acquire the lock. If that is successful, the function will
-        return true. If the lock could not be immediately obtained, the
-        trylock will return with false. No spinning occurs in this function.
+Given 'lock', which is a pointer to an unpadded fam spinlock, tries
+once to acquire the lock. If that is successful, the function will
+return true. If the lock could not be immediately obtained, the
+trylock will return with false. No spinning occurs in this function.
 
 RETURN VALUE
 ------------
-        Returns true if the lock has been acquired, else returns false.
+Returns true if the lock has been acquired, else returns false.
