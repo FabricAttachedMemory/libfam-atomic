@@ -22,9 +22,41 @@
 #include <sys/mman.h>
 #include <fam_atomic.h>
 
+/*
+ * Structure containing all unpadded fam atomics
+ * and locks. The structure is cacheline aligned
+ * so that it would not share cachelines with
+ * regular data.
+ */
+struct node {
+	/* unpadded 32 bit fam atomics */
+	int32_t fam_atomic_val1;
+	int32_t fam_atomic_val2;
+
+	/* unpadded 64 bit fam atomics */
+	int64_t fam_atomic_val3;
+	int64_t fam_atomic_val4;
+
+	/* unpadded fam spinlocks */
+	struct fam_spinlock_unpadded spinlock1;
+	struct fam_spinlock_unpadded spinlock2;
+} __attribute__((__aligned__(64)));
+
 struct data {
+	/*
+	 * Regular fam atomic and fam spinlock.
+	 * Each takes up an entire cacheline.
+	 */
 	struct fam_atomic_64	atomic;
 	struct fam_spinlock	spinlock;
+
+	/*
+	 * Group of unpadded fam atomics and locks. If we
+	 * have a lot of atomics, we can save space by using
+	 * the unpadded variant and pack all of them into
+	 * the same cacheline.
+	 */
+	struct node		node;
 };
 
 int
@@ -35,6 +67,11 @@ main(int argc, char **argv) {
 	ftruncate(fd, sizeof(struct data));
 	struct data *data = mmap(0, sizeof(struct data),
 				 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+	/*
+	 * We must register the region with the fam atomic library
+	 * before the fam atomics and locks within the region can be used.
+	 */
 	fam_atomic_register_region(data, sizeof(struct data), fd, 0);
 
 	/* Set to zero */
@@ -67,6 +104,22 @@ main(int argc, char **argv) {
 
 	/* Unlock */
 	fam_spin_unlock(&data->spinlock);
+
+	/* Initialize unpadded atomics and locks */
+	fam_atomic_32_write_unpadded(&data->node.fam_atomic_val1, 0);
+	fam_atomic_32_write_unpadded(&data->node.fam_atomic_val2, 0);
+	fam_atomic_64_write_unpadded(&data->node.fam_atomic_val3, 0);
+	fam_atomic_64_write_unpadded(&data->node.fam_atomic_val4, 0);
+	data->node.spinlock1 = FAM_SPINLOCK_UNPADDED_INITIALIZER;
+	data->node.spinlock2 = FAM_SPINLOCK_UNPADDED_INITIALIZER;
+
+	/* Acquire unpadded fam spinlocks */
+	fam_spin_lock_unpadded(&data->node.spinlock1);
+	assert(fam_spin_trylock_unpadded(&data->node.spinlock2));
+
+	/* Release unpadded fam spinlocks */
+	fam_spin_unlock_unpadded(&data->node.spinlock2);
+	fam_spin_unlock_unpadded(&data->node.spinlock1);
 
 	/* Clean up */
 	fam_atomic_unregister_region(data, sizeof(struct data));
