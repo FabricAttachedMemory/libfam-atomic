@@ -207,11 +207,10 @@ int main(int argc, char **argv)
 		    data->w2 == (nr_process * nr_increments) &&
 		    data->w3 == (nr_process * nr_increments) &&
 		    data->w4 == (nr_process * nr_increments)) {
-			printf("\n\nTest completed successfully!\n\n",
-			       basename(argv[0]));
+			printf("\n\nTest completed successfully!\n\n");
 			return 0;
 		} else {
-			printf("\n\nERROR: Test failed\n\n", basename(argv[0]));
+			printf("\n\nERROR: Test failed\n\n");
 			return -1;
 		}
 	}
