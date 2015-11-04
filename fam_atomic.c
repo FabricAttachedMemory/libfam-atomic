@@ -593,6 +593,102 @@ void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 	fam_atomic_128_swap_unpadded(address, value, result);
 }
 
+/*
+ * TODO: For fetch_{and,or,xor}, we always guess the initial CAS 'compare'
+ * value as 0. As an optimization, we can consider more advanced techniques
+ * such as maintaining a cache of values stored to recently used atomics.
+ * This can improve the accuracy of the guess.
+ */
+int32_t fam_atomic_32_fetch_and_unpadded(int32_t *address, int32_t arg)
+{
+	/*
+	 * Reading the fam atomic value requires an additional system call.
+	 * So we'll just guess the value as 0 for the initial CAS. If the
+	 * guess is incorrect, we'll treat the CAS() as the atomic read
+	 * since CAS() returns the prev value.
+	 */
+	int32_t prev = 0;
+
+	for (;;) {
+		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev & arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
+int64_t fam_atomic_64_fetch_and_unpadded(int64_t *address, int64_t arg)
+{
+	int64_t prev = 0;
+
+	for (;;) {
+		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev & arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
+int32_t fam_atomic_32_fetch_or_unpadded(int32_t *address, int32_t arg)
+{
+	int32_t prev = 0;
+
+	for (;;) {
+		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev | arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
+int64_t fam_atomic_64_fetch_or_unpadded(int64_t *address, int64_t arg)
+{
+	int64_t prev = 0;
+
+	for (;;) {
+		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev | arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
+int32_t fam_atomic_32_fetch_xor_unpadded(int32_t *address, int32_t arg)
+{
+	int32_t prev = 0;
+
+	for (;;) {
+		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev ^ arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
+int64_t fam_atomic_64_fetch_xor_unpadded(int64_t *address, int64_t arg)
+{
+	int64_t prev = 0;
+
+	for (;;) {
+		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev ^ arg);
+
+		if (actual == prev)
+			return prev;
+
+		prev = actual;
+	}
+}
+
 void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
 {
         struct fam_spinlock_unpadded inc = {

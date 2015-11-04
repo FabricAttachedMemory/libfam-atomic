@@ -160,6 +160,30 @@ void
 fam_atomic_128_write_unpadded(int64_t *address,
 			      int64_t value[2]);
 
+int32_t
+fam_atomic_32_fetch_and_unpadded(int32_t *address,
+				 int32_t arg);
+
+int64_t
+fam_atomic_64_fetch_and_unpadded(int64_t *address,
+				 int64_t arg);
+
+int32_t
+fam_atomic_32_fetch_or_unpadded(int32_t *address,
+				int32_t arg);
+
+int64_t
+fam_atomic_64_fetch_or_unpadded(int64_t *address,
+				int64_t arg);
+
+int32_t
+fam_atomic_32_fetch_xor_unpadded(int32_t *address,
+				 int32_t arg);
+
+int64_t
+fam_atomic_64_fetch_xor_unpadded(int64_t *address,
+				 int64_t arg);
+
 /*
  * fam atomic data types
  * ----------------------
@@ -319,6 +343,68 @@ fam_atomic_128_write(struct fam_atomic_128 *address,
 	fam_atomic_128_write_unpadded(address->__v__, value);
 }
 
+/*
+ * Atomically performs bitwise AND between the fam atomic
+ * variable and 'arg'.
+ *
+ * @address: Pointer to an fam atomic variable.
+ * @arg: The value that the atomic gets AND'd with.
+ */
+static inline int32_t
+fam_atomic_32_fetch_and(struct fam_atomic_32 *address,
+			int32_t arg)
+{
+	fam_atomic_32_fetch_and_unpadded(&address->__v__, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_and(struct fam_atomic_64 *address,
+			int64_t arg)
+{
+	fam_atomic_64_fetch_and_unpadded(&address->__v__, arg);
+}
+
+/*
+ * Atomically performs bitwise OR between the fam atomic
+ * variable and 'arg'.
+ *
+ * @address: Pointer to an fam atomic variable.
+ * @arg: The value that the atomic gets OR'd with.
+ */
+static inline int32_t
+fam_atomic_32_fetch_or(struct fam_atomic_32 *address,
+		       int32_t arg)
+{
+	fam_atomic_32_fetch_or_unpadded(&address->__v__, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_or(struct fam_atomic_64 *address,
+		       int32_t arg)
+{
+	fam_atomic_64_fetch_or_unpadded(&address->__v__, arg);
+}
+
+/*
+ * Atomically performs bitwise XOR between the fam atomic
+ * variable and 'arg'.
+ *
+ * @address: Pointer to an fam atomic variable.
+ * @arg: The value that the atomic gets XOR'd with.
+ */
+static inline int32_t
+fam_atomic_32_fetch_xor(struct fam_atomic_32 *address,
+			int32_t arg)
+{
+	fam_atomic_32_fetch_xor_unpadded(&address->__v__, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_xor(struct fam_atomic_64 *address,
+			int64_t arg)
+{
+	fam_atomic_64_fetch_xor_unpadded(&address->__v__, arg);
+}
 
 /* Spinlocks */
 typedef int32_t	__fam_ticket_t;
