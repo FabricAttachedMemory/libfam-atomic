@@ -14,6 +14,12 @@ DOC_FILES= \
 	fam_atomic_32_compare_and_store_unpadded.txt \
 	fam_atomic_32_fetch_and_add.txt \
 	fam_atomic_32_fetch_and_add_unpadded.txt \
+	fam_atomic_32_fetch_and.txt \
+	fam_atomic_32_fetch_and_unpadded.txt \
+	fam_atomic_32_fetch_or.txt \
+	fam_atomic_32_fetch_or_unpadded.txt \
+	fam_atomic_32_fetch_xor.txt \
+	fam_atomic_32_fetch_xor_unpadded.txt \
 	fam_atomic_32_read.txt \
 	fam_atomic_32_read_unpadded.txt \
 	fam_atomic_32_swap.txt \
@@ -24,6 +30,12 @@ DOC_FILES= \
 	fam_atomic_64_compare_and_store_unpadded.txt \
 	fam_atomic_64_fetch_and_add.txt \
 	fam_atomic_64_fetch_and_add_unpadded.txt \
+	fam_atomic_64_fetch_and.txt \
+	fam_atomic_64_fetch_and_unpadded.txt \
+	fam_atomic_64_fetch_or.txt \
+	fam_atomic_64_fetch_or_unpadded.txt \
+	fam_atomic_64_fetch_xor.txt \
+	fam_atomic_64_fetch_xor_unpadded.txt \
 	fam_atomic_64_read.txt \
 	fam_atomic_64_read_unpadded.txt \
 	fam_atomic_64_swap.txt \

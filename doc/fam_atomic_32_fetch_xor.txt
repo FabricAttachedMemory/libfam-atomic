@@ -1,0 +1,30 @@
+fam_atomic_32_fetch_xor(3)
+==========================
+:doctype: manpage
+
+NAME
+----
+fam_atomic_32_fetch_xor - 32 bit fam atomic fetch xor operation
+
+SYNOPSIS
+--------
+....
+#include <fam_atomic.h>
+
+int32_t
+fam_atomic_32_fetch_xor(struct fam_atomic_32 *address,
+                        int32_t arg);
+
+cc ... -lfam_atomic
+....
+DESCRIPTION
+-----------
+Given 'address', which is a pointer to a 32 bit fam atomic variable,
+reads the contents of the atomic variable, performs bitwise XOR
+between the atomic variable and 'arg', and returns the original
+value that was read.
+
+RETURN VALUE
+------------
+Returns the previous value of the fam atomic (before the atomic
+variable was XOR'd with 'arg'.
