@@ -35,6 +35,9 @@
 void fam_atomic_compare_exchange_wrong_size(void);
 void fam_atomic_xadd_wrong_size(void);
 void fam_atomic_xchg_wrong_size(void);
+void fam_atomic_arch_not_supported(void);
+
+#ifdef __x86_64__
 
 #define __x86_raw_cmpxchg(ptr, old, new, size, lock)		\
 ({								\
@@ -91,10 +94,6 @@ void fam_atomic_xchg_wrong_size(void);
 
 #define __x86_xadd(ptr, inc, lock)	__x86_xchg_op((ptr), (inc), xadd, lock)
 
-#define x86_cmpxchg(ptr, old, new)	__x86_cmpxchg(ptr, old, new, sizeof(*(ptr)))
-#define x86_xchg(ptr, v)		__x86_xchg_op((ptr), (v), xchg, "")
-#define x86_xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
-
 #define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)			\
 ({									\
 	bool __ret;							\
@@ -108,8 +107,17 @@ void fam_atomic_xchg_wrong_size(void);
 	__ret;								\
 })
 
+#define xchg(ptr, v)		__x86_xchg_op((ptr), (v), xchg, "")
+#define xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
+#define cmpxchg(ptr, old, new)	__x86_cmpxchg(ptr, old, new, sizeof(*(ptr)))
 #define cmpxchg16(p1, p2, o1, o2, n1, n2) \
 	__cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
+
+#else
+
+fam_atomic_arch_not_supported();
+
+#endif
 
 static inline void ioctl_4(struct fam_atomic_args_32 *args, unsigned int opt)
 {
@@ -119,17 +127,17 @@ static inline void ioctl_4(struct fam_atomic_args_32 *args, unsigned int opt)
 
 	switch (opt) {
 	case FAM_ATOMIC_32_FETCH_AND_ADD:
-		prev = x86_xadd(atomic, args->p32_0);
+		prev = xadd(atomic, args->p32_0);
 		*result_ptr = prev;
 		break;
 
 	case FAM_ATOMIC_32_SWAP:
-		prev = x86_xchg(atomic, args->p32_0);
+		prev = xchg(atomic, args->p32_0);
 		*result_ptr = prev;
 		break;
 
 	case FAM_ATOMIC_32_COMPARE_AND_STORE:
-		prev = x86_cmpxchg(atomic, args->p32_0, args->p32_1);
+		prev = cmpxchg(atomic, args->p32_0, args->p32_1);
 		*result_ptr = prev;
 		break;
 	}
@@ -143,17 +151,17 @@ static inline void ioctl_8(struct fam_atomic_args_64 *args, unsigned int opt)
 
 	switch (opt) {
 	case FAM_ATOMIC_64_FETCH_AND_ADD:
-		prev = x86_xadd(atomic, args->p64_0);
+		prev = xadd(atomic, args->p64_0);
 		*result_ptr = prev;
 		break;
 
 	case FAM_ATOMIC_64_SWAP:
-		prev = x86_xchg(atomic, args->p64_0);
+		prev = xchg(atomic, args->p64_0);
 		*result_ptr = prev;
 		break;
 
 	case FAM_ATOMIC_64_COMPARE_AND_STORE:
-		prev = x86_cmpxchg(atomic, args->p64_0, args->p64_1);
+		prev = cmpxchg(atomic, args->p64_0, args->p64_1);
 		*result_ptr = prev;
 		break;
 	}
@@ -171,8 +179,8 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
 	switch(opt) {
 	case FAM_ATOMIC_128_SWAP:
 		for (;;) {
-			old[0] = x86_xadd(address1, 0);
-			old[1] = x86_xadd(address2, 0);
+			old[0] = xadd(address1, 0);
+			old[1] = xadd(address2, 0);
 
 			ret = cmpxchg16(address1, address2,
 					old[0], old[1],
@@ -205,8 +213,8 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
 				 * users can correctly check that the operation
 				 * did not succeed. Otherwise, retry the operation.
 				 */
-				old[0] = x86_xadd(address1, 0);
-				old[1] = x86_xadd(address2, 0);
+				old[0] = xadd(address1, 0);
+				old[1] = xadd(address2, 0);
 
 				if (old[0] != args->p128_0[0] ||
 				    old[1] != args->p128_0[1]) {
@@ -221,8 +229,8 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
 
 	case FAM_ATOMIC_128_READ:
 		for (;;) {
-			old[0] = x86_xadd(address1, 0);
-			old[1] = x86_xadd(address2, 0);
+			old[0] = xadd(address1, 0);
+			old[1] = xadd(address2, 0);
 
 			ret = cmpxchg16(address1, address2,
 					old[0], old[1], old[0], old[1]);
