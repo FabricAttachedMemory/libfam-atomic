@@ -94,7 +94,7 @@ void fam_atomic_arch_not_supported(void);
 
 #define __x86_xadd(ptr, inc, lock)	__x86_xchg_op((ptr), (inc), xadd, lock)
 
-#define __cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)			\
+#define __x86_cmpxchg16(pfx, p1, p2, o1, o2, n1, n2)			\
 ({									\
 	bool __ret;							\
 	__typeof__(*(p1)) __old1 = (o1), __new1 = (n1);			\
@@ -111,7 +111,7 @@ void fam_atomic_arch_not_supported(void);
 #define xadd(ptr, inc)		__x86_xadd((ptr), (inc), LOCK_PREFIX)
 #define cmpxchg(ptr, old, new)	__x86_cmpxchg(ptr, old, new, sizeof(*(ptr)))
 #define cmpxchg16(p1, p2, o1, o2, n1, n2) \
-	__cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
+	__x86_cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
 
 #else
 
