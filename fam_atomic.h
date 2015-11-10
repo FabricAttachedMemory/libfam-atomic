@@ -354,14 +354,14 @@ static inline int32_t
 fam_atomic_32_fetch_and(struct fam_atomic_32 *address,
 			int32_t arg)
 {
-	fam_atomic_32_fetch_and_unpadded(&address->__v__, arg);
+	return fam_atomic_32_fetch_and_unpadded(&address->__v__, arg);
 }
 
 static inline int64_t
 fam_atomic_64_fetch_and(struct fam_atomic_64 *address,
 			int64_t arg)
 {
-	fam_atomic_64_fetch_and_unpadded(&address->__v__, arg);
+	return fam_atomic_64_fetch_and_unpadded(&address->__v__, arg);
 }
 
 /*
@@ -375,14 +375,14 @@ static inline int32_t
 fam_atomic_32_fetch_or(struct fam_atomic_32 *address,
 		       int32_t arg)
 {
-	fam_atomic_32_fetch_or_unpadded(&address->__v__, arg);
+	return fam_atomic_32_fetch_or_unpadded(&address->__v__, arg);
 }
 
 static inline int64_t
 fam_atomic_64_fetch_or(struct fam_atomic_64 *address,
 		       int64_t arg)
 {
-	fam_atomic_64_fetch_or_unpadded(&address->__v__, arg);
+	return fam_atomic_64_fetch_or_unpadded(&address->__v__, arg);
 }
 
 /*
@@ -396,14 +396,14 @@ static inline int32_t
 fam_atomic_32_fetch_xor(struct fam_atomic_32 *address,
 			int32_t arg)
 {
-	fam_atomic_32_fetch_xor_unpadded(&address->__v__, arg);
+	return fam_atomic_32_fetch_xor_unpadded(&address->__v__, arg);
 }
 
 static inline int64_t
 fam_atomic_64_fetch_xor(struct fam_atomic_64 *address,
 			int64_t arg)
 {
-	fam_atomic_64_fetch_xor_unpadded(&address->__v__, arg);
+	return fam_atomic_64_fetch_xor_unpadded(&address->__v__, arg);
 }
 
 /* Spinlocks */
