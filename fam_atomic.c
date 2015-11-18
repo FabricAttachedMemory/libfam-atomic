@@ -113,6 +113,220 @@ void fam_atomic_arch_not_supported(void);
 #define cmpxchg16(p1, p2, o1, o2, n1, n2) \
 	__x86_cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
 
+#elif __aarch64__
+
+static inline int arm_atomic_add_return(void *ptr, int inc)
+{
+	unsigned long tmp;
+	int result;
+
+	asm volatile("// atomic_add_return\n"
+"1:     ldxr    %w0, %2\n"
+"       add     %w0, %w0, %w3\n"
+"       stlxr   %w1, %w0, %2\n"
+"       cbnz    %w1, 1b"
+	: "=&r" (result), "=&r" (tmp), "+Q" (*((u32 *)ptr))
+	: "Ir" (inc)
+	: "memory");
+
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+				
+	return result;
+}
+
+static inline long arm_atomic64_add_return(void *ptr, long inc)          
+{                                                                       
+	long result;                                                    
+	unsigned long tmp;                                             
+				                                        
+	asm volatile("// atomic64_add_return\n"                         
+"1:     ldxr    %0, %2\n"                                               
+"       add     %0, %0, %3\n"                                           
+"       stlxr   %w1, %0, %2\n"                                          
+"       cbnz    %w1, 1b"                                                
+	: "=&r" (result), "=&r" (tmp), "+Q" (*((u64 *)ptr))                    
+	: "Ir" (inc)                                                      
+	: "memory");                                                    
+				                                        
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+	return result;                                                  
+}
+
+#define arm_xadd(ptr, inc)						\
+	({								\
+		__typeof__ (*(ptr)) __ret;				\
+		switch(sizeof(*(ptr))) {				\
+		case 4:							\
+			__ret = arm_atomic_add_return(ptr, inc);	\
+			break;						\
+		case 8:							\
+			__ret = arm_atomic64_add_return(ptr, inc);	\
+			break;						\
+		default:						\
+			fam_atomic_xadd_wrong_size();			\
+		}							\
+		(__ret - inc);						\
+	})
+
+static inline unsigned long __arm_cmpxchg(volatile void *ptr, unsigned long old,
+				      unsigned long new, int size)
+{
+	unsigned long oldval = 0, res;
+
+	switch (size) {
+	case 4:
+		do {
+			asm volatile("// __cmpxchg4\n"
+			"       ldxr    %w1, %2\n"
+			"       mov     %w0, #0\n"
+			"       cmp     %w1, %w3\n"
+			"       b.ne    1f\n"
+			"       stxr    %w0, %w4, %2\n"
+			"1:\n"
+				: "=&r" (res), "=&r" (oldval), "+Q" (*(u32 *)ptr)
+				: "Ir" (old), "r" (new)
+				: "cc");
+		} while (res);
+		break;
+
+	case 8:
+		do {
+			asm volatile("// __cmpxchg8\n"
+			"       ldxr    %1, %2\n"
+			"       mov     %w0, #0\n"
+			"       cmp     %1, %3\n"
+			"       b.ne    1f\n"
+			"       stxr    %w0, %4, %2\n"
+			"1:\n"
+				: "=&r" (res), "=&r" (oldval), "+Q" (*(u64 *)ptr)
+				: "Ir" (old), "r" (new)
+				: "cc");
+		} while (res);
+		break;
+
+	default:
+		break;
+	}
+
+	return oldval;
+}
+
+static inline unsigned long __arm_cmpxchg_mb(volatile void *ptr, unsigned long old,
+				         unsigned long new, int size)
+{
+	unsigned long ret;
+
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+	ret = __arm_cmpxchg(ptr, old, new, size);
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+
+	return ret;
+}
+
+#define arm_cmpxchg(ptr, o, n) \
+({ \
+	__typeof__(*(ptr)) __ret; \
+	__ret = (__typeof__(*(ptr))) \
+		__arm_cmpxchg_mb((ptr), (unsigned long)(o), (unsigned long)(n), \
+			     sizeof(*(ptr))); \
+	__ret; \
+})
+
+static inline unsigned long __arm_xchg(unsigned long x, volatile void *ptr, int size)
+{
+	unsigned long ret, tmp;
+
+	switch (size) {
+	case 4:
+		asm volatile("//        __xchg4\n"
+		"1:     ldxr    %w0, %2\n"
+		"       stlxr   %w1, %w3, %2\n"
+		"       cbnz    %w1, 1b\n"
+			: "=&r" (ret), "=&r" (tmp), "+Q" (*(u32 *)ptr)
+			: "r" (x)
+			: "memory");
+		break;
+	case 8:
+		asm volatile("//        __xchg8\n"
+		"1:     ldxr    %0, %2\n"
+		"       stlxr   %w1, %3, %2\n"
+		"       cbnz    %w1, 1b\n"
+			: "=&r" (ret), "=&r" (tmp), "+Q" (*(u64 *)ptr)
+			: "r" (x)
+			: "memory");
+		break;
+	default:
+	       	break;
+	}
+
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+	return ret;
+}
+
+#define arm_xchg(ptr,x) \
+({ \
+	__typeof__(*(ptr)) __ret; \
+	__ret = (__typeof__(*(ptr))) \
+		__arm_xchg((unsigned long)(x), (ptr), sizeof(*(ptr))); \
+	__ret; \
+})
+
+static inline int __arm_cmpxchg16(volatile void *ptr1, volatile void *ptr2,
+		unsigned long old1, unsigned long old2,
+		unsigned long new1, unsigned long new2, int size)
+{
+	unsigned long loop, lost;
+
+	switch (size) {
+	case 8:
+		do {
+			asm volatile("// __cmpxchg_double8\n"
+			"       ldxp    %0, %1, %2\n"
+			"       eor     %0, %0, %3\n"
+			"       eor     %1, %1, %4\n"
+			"       orr     %1, %0, %1\n"
+			"       mov     %w0, #0\n"
+			"       cbnz    %1, 1f\n"
+			"       stxp    %w0, %5, %6, %2\n"
+			"1:\n"
+				: "=&r"(loop), "=&r"(lost), "+Q" (*(u64 *)ptr1)
+				: "r" (old1), "r"(old2), "r"(new1), "r"(new2));
+		} while (loop);
+		break;
+	default:
+		break;
+	}
+
+	return !lost;
+}
+
+static inline int __arm_cmpxchg16_mb(volatile void *ptr1, volatile void *ptr2,
+		        unsigned long old1, unsigned long old2,
+		        unsigned long new1, unsigned long new2, int size)
+{
+	int ret;
+
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+	ret = __arm_cmpxchg16(ptr1, ptr2, old1, old2, new1, new2, size);
+	__asm__ __volatile__ ("dsb ish" : : : "memory");
+
+	return ret;
+}
+
+#define arm_cmpxchg16(ptr1, ptr2, o1, o2, n1, n2) \
+({\
+	int __ret;\
+	__ret = __arm_cmpxchg16_mb((ptr1), (ptr2), (unsigned long)(o1), \
+		        (unsigned long)(o2), (unsigned long)(n1), \
+		        (unsigned long)(n2), sizeof(*(ptr1)));\
+	__ret; \
+})
+
+#define xadd(ptr, inc)				arm_xadd(ptr, inc) 
+#define xchg(ptr, val)				arm_xchg(ptr, val)
+#define cmpxchg(ptr, o, n)			arm_cmpxchg(ptr, o, n)
+#define cmpxchg16(ptr1, ptr2, o1, o2, n1, n2)	arm_cmpxchg16(ptr1, ptr2, o1, o2, n1, n2)
+
 #else
 
 fam_atomic_arch_not_supported();
