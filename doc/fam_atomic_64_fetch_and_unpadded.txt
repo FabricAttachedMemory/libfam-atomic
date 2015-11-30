@@ -4,7 +4,7 @@ fam_atomic_64_fetch_and_unpadded(3)
 
 NAME
 ----
-fam_atomic_64_fetch_and - unpadded 64 bit fam atomic fetch and operation
+fam_atomic_64_fetch_and_unpadded - unpadded 64 bit fam atomic fetch and operation
 
 SYNOPSIS
 --------
