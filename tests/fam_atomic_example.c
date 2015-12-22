@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <stdio.h>
 #include <fam_atomic.h>
 
 /*
