@@ -72,7 +72,10 @@ main(int argc, char **argv) {
 	 * We must register the region with the fam atomic library
 	 * before the fam atomics and locks within the region can be used.
 	 */
-	fam_atomic_register_region(data, sizeof(struct data), fd, 0);
+	if (fam_atomic_register_region(data, sizeof(struct data), fd, 0) == -1) {
+		fprintf(stderr, "unable to register atomic region\n");
+		return 1;
+	}
 
 	/* Set to zero */
 	fam_atomic_64_write(&data->atomic, 0);
