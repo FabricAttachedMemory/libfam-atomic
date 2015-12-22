@@ -40,4 +40,10 @@ Should match offset value given to mmap().
 
 RETURN VALUE
 ------------
-Returns 0 on success, or a negative value on failure.
+Returns 0 on success. On failure, returns -1 and sets
+errno to indicate the error.
+
+ERRORS
+------
+*ENOMEM* Not enough memory for the library to allocate the metadata
+         required for tracking the registered region.
