@@ -483,6 +483,8 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 		printf("ERROR: ioctl() invalid 'opt' argument\n");
 		exit(-1);
 	}
+
+	return 0;
 }
 
 /* Each node represents a registered NVM atomic region. */
