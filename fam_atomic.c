@@ -467,6 +467,13 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
  */
 static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 {
+#ifdef TMAS
+	/*
+	 * On TMAS, we'll make the "real" ioctl() system call.
+	 */
+	return ioctl(fd, open, args);
+#else
+
 	if (opt == FAM_ATOMIC_32_FETCH_AND_ADD ||
 	    opt == FAM_ATOMIC_32_SWAP ||
 	    opt == FAM_ATOMIC_32_COMPARE_AND_STORE) {
@@ -485,6 +492,7 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 	}
 
 	return 0;
+#endif
 }
 
 /* Each node represents a registered NVM atomic region. */
@@ -540,6 +548,21 @@ int fam_atomic_register_region(void *region_start, size_t region_length, int fd,
 	new_node->fd = fd;
 	new_node->region_offset = offset;
 
+#ifdef TMAS
+	/*
+	 * On TMAS, the ioctls are implemented in a separate driver
+	 * and not a part of LFS, so we'll open the device file for
+	 * the driver and use that fd.
+	 */
+	new_node->fd = open("/dev/fam_atomic", O_RDWR);
+	if (new_node->fd == -1) {
+		printf("fam_atomic_register_region(): Unable to open device\n");
+		printf("file. Please verify that the fam_atomic TMAS driver\n");
+		printf("has been installed on the system.\n");
+		return -1;
+	}
+#endif
+
 	/* TODO: Detect overlapping regions? */
 	list_add(&fam_atomic_region_list, new_node);
 
@@ -563,6 +586,10 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 	/* Error, no such region. */
 	if (!curr)
 		return;
+
+#ifdef TMAS
+	close(curr->fd);
+#endif
 
 	list_del(&fam_atomic_region_list, prev, curr);
 }
@@ -600,6 +627,15 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	*fd = curr->fd;
 	*offset = (int64_t)address - (int64_t)curr->region_start +
 		  (int64_t)curr->region_offset;
+
+#ifdef TMAS
+	/*
+	 * We'll directly pass the VA to the ioctl rather than the
+	 * LFS file offset, since the ioctls for the atomics will be
+	 * in a separate driver and not part of LFS.
+	 */
+	*offset = (int64_t)address;
+#endif
 }
 
 int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
