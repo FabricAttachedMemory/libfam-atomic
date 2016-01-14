@@ -621,7 +621,7 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 		printf("ERROR: fam atomic variable used without being registered. NVM regions containing\n");
 		printf("       fam atomics must be registered with fam_atomic_register_region() before\n");
 		printf("       the fam atomics within the region can be used\n");
-		kill(0, SIGSEGV);
+		raise(SIGSEGV);
 	}
 
 	*fd = curr->fd;
