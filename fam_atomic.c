@@ -471,7 +471,7 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 	/*
 	 * On TMAS, we'll make the "real" ioctl() system call.
 	 */
-	return ioctl(fd, open, args);
+	return ioctl(fd, opt, args);
 #else
 
 	if (opt == FAM_ATOMIC_32_FETCH_AND_ADD ||
