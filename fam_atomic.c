@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
+#include <fcntl.h>
 #include "fam_atomic.h"
 
 #define LOCK_PREFIX_HERE                  \
