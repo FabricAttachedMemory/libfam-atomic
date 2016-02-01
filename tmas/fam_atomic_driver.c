@@ -398,6 +398,10 @@ long fam_atomic_ioctl(struct file *file, unsigned int ioctl_num, unsigned long a
 
 	switch (ioctl_num) {
 
+	case FAM_ATOMIC_32_FETCH_AND_ADD:
+		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
+		break;
+
 	case FAM_ATOMIC_32_SWAP:
 		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
 		break;
