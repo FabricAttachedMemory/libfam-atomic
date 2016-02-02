@@ -105,14 +105,21 @@ struct data {
 
 int main(int argc, char **argv)
 {
+	char *file = "/lfs/fam_atomic_test.data";
 	int nr_increments = 2000000;
 	struct data *data;
 	int i;
 	int nr_process = 10;
 	int pid;
 
-	int fd = open("fam_atomic_test.data", O_CREAT | O_RDWR, 0666);
-	unlink("fam_atomic_test.data");
+	int fd = open(file, O_CREAT | O_RDWR, 0666);
+
+	if (fd < 0) {
+		fprintf(stderr, "ERROR: Unable to open LFS file\n");
+		return 1;
+	}
+
+	unlink(file);
 	ftruncate(fd, sizeof(struct data));
 	data = mmap(0, sizeof(struct data), PROT_READ | PROT_WRITE,
 		   			    MAP_SHARED, fd, 0);
