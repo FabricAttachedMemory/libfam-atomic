@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 
 static inline void
 acquire_compare_and_store_32(struct fam_atomic_32 *atomic)
@@ -100,15 +101,16 @@ struct data {
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
 	struct fam_atomic_32 start;
+	int done;
 	int64_t total_iterations;
 };
 
 int main(int argc, char **argv)
 {
 	char *file = "/lfs/fam_atomic_test.data";
-	int nr_increments = 2000000;
 	struct data *data;
 	int i;
+	int test_duration_sec = 20;
 	int nr_process = 10;
 	int pid;
 
@@ -164,6 +166,8 @@ int main(int argc, char **argv)
 	 * successful when the test completes.
 	 */
 	if (pid != 0) {
+		struct timespec start, now;
+		int curr_duration_sec;
 		int i;
 		int line_length = 52;
 
@@ -173,13 +177,20 @@ int main(int argc, char **argv)
 		 */
 		fam_atomic_32_write(&data->start, 1);
 
-		while (data->total_iterations < nr_increments * nr_process) {
+		clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
+
+		for (;;) {
+			double percent_done;
+			int duration_curr_sec;
+
+			clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+			curr_duration_sec = now.tv_sec - start.tv_sec;
+			if (curr_duration_sec > test_duration_sec)
+				break;
+
 			sleep(1);
 
-			double percent_done = (double)data->total_iterations /
-					      (nr_increments * nr_process) *
-					      line_length;
-
+			percent_done = (double)curr_duration_sec / test_duration_sec * line_length;
 			printf("   [");
 
 			for (i = 1; i <= line_length; i++) {
@@ -196,24 +207,30 @@ int main(int argc, char **argv)
 					printf(" ");
 			}
 	
-			printf("] %.2f%%\r", (double)data->total_iterations /
-					     (nr_increments * nr_process) * 100);
+			printf("] %.2f%%\r", (double)curr_duration_sec / test_duration_sec * 100);
 			fflush(stdout);
 		}
+
+		/*
+		 * Notify all other processes that the benchmark is complete.
+		 */
+		__sync_lock_test_and_set(&data->done, 1);
 
 		/*
 		 * Make sure all processes really finished.
 		 */
 		while (wait(NULL) >= 0);
 
+		__sync_synchronize();
+
 		/*
 		 * Verify all words in the region are 0 and print whether or not
 		 * the test completed successfully.
 		 */
-		if (data->w1 == (nr_process * nr_increments) &&
-		    data->w2 == (nr_process * nr_increments) &&
-		    data->w3 == (nr_process * nr_increments) &&
-		    data->w4 == (nr_process * nr_increments)) {
+		if (data->w1 == (data->total_iterations) &&
+		    data->w2 == (data->total_iterations) &&
+		    data->w3 == (data->total_iterations) &&
+		    data->w4 == (data->total_iterations)) {
 			printf("\n\nTest completed successfully!\n\n");
 			return 0;
 		} else {
@@ -231,7 +248,11 @@ int main(int argc, char **argv)
 	while (!fam_atomic_32_read(&data->start))
 		usleep(100 * 1000);
 
-	for (i = 0; i < nr_increments; i++) {
+	for (;;) {
+		/* Use fetch_and_add 0 as atomic read. */
+		if (__sync_fetch_and_add(&data->done, 0) == 1)
+			break;
+
 		/*
 		 * The total_iterations variable just keeps track
 		 * of the progress of the test and isn't really part of
