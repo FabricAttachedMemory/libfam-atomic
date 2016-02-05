@@ -410,6 +410,11 @@ fam_atomic_64_fetch_xor(struct fam_atomic_64 *address,
 typedef int32_t	__fam_ticket_t;
 typedef int64_t	__fam_ticketpair_t;
 
+struct __fam_tickets {
+	__fam_ticket_t  head;   /* low bytes */
+	__fam_ticket_t  tail;   /* high bytes */
+};
+
 /*
  * The spinlock is a queue made from two values, head and tail. To
  * lock, you increment tail and then wait until head reaches the
@@ -429,10 +434,7 @@ typedef int64_t	__fam_ticketpair_t;
 struct fam_spinlock_unpadded {
 	union {
 		__fam_ticketpair_t      head_tail;
-		struct __fam_tickets {
-			__fam_ticket_t  head;   /* low bytes */
-			__fam_ticket_t  tail;   /* high bytes */
-		} tickets;
+		struct __fam_tickets	tickets;
 	};
 };
 
