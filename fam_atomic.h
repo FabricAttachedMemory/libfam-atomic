@@ -22,6 +22,17 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+/*
+ * The libfam-atomic library is compiled in C, so when C++ applications
+ * use the fam atomic interfaces, the compiler needs to be notified
+ * that the fam atomic functions are compiled in C. We'll specify the
+ * extern "C" in the header file so that C++ applications don't need
+ * to worry about this.
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Fabric Attached Memory Atomic ioctl interface */
 
 struct fam_atomic_args_32 {
@@ -472,5 +483,9 @@ fam_spin_unlock(struct fam_spinlock *lock)
 {
 	fam_spin_unlock_unpadded(&lock->__v__);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _FAM_ATOMIC_H_ */
