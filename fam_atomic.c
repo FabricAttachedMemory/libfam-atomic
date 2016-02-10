@@ -496,6 +496,79 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 #endif
 }
 
+
+/*
+ * A simple read/write lock for internal use within library.
+ * The read lock will be taken significantly more often than
+ * the write lock, so we must ensure there is no writer starvation.
+ * Writers get priority for getting the lock. We don't need to
+ * worry about reader starvation in this library because we only
+ * need to take the write lock when registering and unregistering
+ * atomics, which are less common operations.
+ */
+struct rw_lock {
+	/*
+	 * 0x1000000: free
+	 * 0: writer
+	 * positive value less than 0x100000: reader(s)
+	 */
+	int value;
+	int nr_write_waiters;
+} __attribute__((__aligned__(64)));
+
+#define UNLOCKED   0x1000000
+#define WRITE_BIAS 0x1000000
+#define READ_BIAS  0x1
+
+void read_lock(struct rw_lock *lock)
+{
+	/* Fastpath */
+	if (xadd(&lock->value, -READ_BIAS) > 0 &&
+	    lock->nr_write_waiters == 0)
+		return;
+
+	/* Slowpath - contending for lock */
+	xadd(&lock->value, READ_BIAS);
+
+	for (;;) {
+		int value;
+
+		while (lock->nr_write_waiters > 0);
+
+		value = lock->value;
+		if (value > 0 &&
+		    cmpxchg(&lock->value, value, value - READ_BIAS) == value)
+			return;
+	}
+}
+
+void read_unlock(struct rw_lock *lock)
+{
+	xadd(&lock->value, READ_BIAS);
+}
+
+void write_lock(struct rw_lock *lock)
+{
+	/* Fastpath */
+	if (xadd(&lock->value, -WRITE_BIAS) == UNLOCKED)
+		return;
+
+	/* Slowpath - contending for lock */
+	xadd(&lock->value, WRITE_BIAS);
+	xadd(&lock->nr_write_waiters, 1);
+	for (;;) {
+		if (lock->value == WRITE_BIAS &&
+		    cmpxchg(&lock->value, UNLOCKED, 0) == UNLOCKED)
+			break;
+	}
+	xadd(&lock->nr_write_waiters, -1);
+}
+
+void write_unlock(struct rw_lock *lock)
+{
+	xadd(&lock->value, WRITE_BIAS);
+}
+
 /* Each node represents a registered NVM atomic region. */
 struct node {
 	void *region_start;
@@ -535,9 +608,11 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
  * the information of the mapping from atomic VA to (fd, region_offset)
  * pair, which get's passed to the kernel.
  */
-static __thread struct list fam_atomic_region_list = { .head = NULL };
+static struct list fam_atomic_region_list = { NULL };
+static struct rw_lock fam_atomic_list_lock = { UNLOCKED, 0 };
 
-int fam_atomic_register_region(void *region_start, size_t region_length, int fd, off_t offset)
+int fam_atomic_register_region(void *region_start, size_t region_length,
+			       int fd, off_t offset)
 {
 	struct node *new_node = malloc(sizeof(struct node));
 
@@ -565,7 +640,9 @@ int fam_atomic_register_region(void *region_start, size_t region_length, int fd,
 #endif
 
 	/* TODO: Detect overlapping regions? */
+	write_lock(&fam_atomic_list_lock);
 	list_add(&fam_atomic_region_list, new_node);
+	write_unlock(&fam_atomic_list_lock);
 
 	return 0;
 }
@@ -576,6 +653,8 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 
 	prev = NULL;
 
+	write_lock(&fam_atomic_list_lock);
+
 	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
 		if (curr->region_start == region_start &&
 		    curr->region_length == region_length)
@@ -585,14 +664,18 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 	}
 
 	/* Error, no such region. */
-	if (!curr)
+	if (!curr) {
+		write_unlock(&fam_atomic_list_lock);
 		return;
+	}
 
 #ifdef TMAS
 	close(curr->fd);
 #endif
 
 	list_del(&fam_atomic_region_list, prev, curr);
+
+	write_unlock(&fam_atomic_list_lock);
 }
 
 /*
@@ -606,6 +689,8 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
 	struct node *curr = NULL;
 
+	read_lock(&fam_atomic_list_lock);
+
 	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
 		if (curr->region_start <= address &&
 		    curr->region_start + curr->region_length >= address)
@@ -616,6 +701,7 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	 * No region containing the atomic has been registered.
 	 */
 	if (!curr) {
+		read_unlock(&fam_atomic_list_lock);
 		/*
 		 * Generate a segmentation fault.
 		 */
@@ -628,6 +714,8 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	*fd = curr->fd;
 	*offset = (int64_t)address - (int64_t)curr->region_start +
 		  (int64_t)curr->region_offset;
+
+	read_unlock(&fam_atomic_list_lock);
 
 #ifdef TMAS
 	/*
