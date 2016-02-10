@@ -602,11 +602,11 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
 }
 
 /*
- * TODO: Convert this to a balanced binary search tree for O(log(n)) search.
+ * TODO: Convert this to a red-black binary search tree for O(log(n)) search.
  *
- * Per-thread list of registered NVM atomic regions. This stores
- * the information of the mapping from atomic VA to (fd, region_offset)
- * pair, which get's passed to the kernel.
+ * List of registered FAM atomic regions. This stores the information of the
+ * mapping from atomic VA to (fd, region_offset) pair, which gets passed in
+ * the ioctl() call to the kernel.
  */
 static struct list fam_atomic_region_list = { NULL };
 static struct rw_lock fam_atomic_list_lock = { UNLOCKED, 0 };
