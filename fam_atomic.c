@@ -520,7 +520,7 @@ struct rw_lock {
 #define WRITE_BIAS 0x1000000
 #define READ_BIAS  0x1
 
-void read_lock(struct rw_lock *lock)
+static inline void read_lock(struct rw_lock *lock)
 {
 	/* Fastpath */
 	if (xadd(&lock->value, -READ_BIAS) > 0 &&
@@ -542,12 +542,12 @@ void read_lock(struct rw_lock *lock)
 	}
 }
 
-void read_unlock(struct rw_lock *lock)
+static inline void read_unlock(struct rw_lock *lock)
 {
 	xadd(&lock->value, READ_BIAS);
 }
 
-void write_lock(struct rw_lock *lock)
+static inline void write_lock(struct rw_lock *lock)
 {
 	/* Fastpath */
 	if (xadd(&lock->value, -WRITE_BIAS) == UNLOCKED)
@@ -564,7 +564,7 @@ void write_lock(struct rw_lock *lock)
 	xadd(&lock->nr_write_waiters, -1);
 }
 
-void write_unlock(struct rw_lock *lock)
+static inline void write_unlock(struct rw_lock *lock)
 {
 	xadd(&lock->value, WRITE_BIAS);
 }
