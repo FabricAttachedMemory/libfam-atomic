@@ -143,6 +143,7 @@ int main(int argc, char **argv)
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
 	fam_atomic_32_write(&data->start, 0);
+	__sync_lock_test_and_set(&data->done, 0);
 	data->total_iterations = 0;
 
 	__sync_synchronize();
