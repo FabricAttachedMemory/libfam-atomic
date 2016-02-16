@@ -1,3 +1,9 @@
+libfam-atomic (1.5) stable; urgency=low
+
+  * Fixes registration between threads and compiler errors when using C++.
+
+ -- Jason Low <jason.low2@hpe.com>  Tue, 16 Feb 2016 9:20:50 -0800
+
 libfam-atomic (1.4) stable; urgency=low
 
   * Add support for TMAS zbridge atomics.

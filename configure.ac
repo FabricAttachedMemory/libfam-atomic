@@ -25,7 +25,7 @@ dnl ==========================================================================
 
 dnl This is the package version number, not the shared library
 dnl version.
-AC_INIT([fam_atomic], [1.4], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
+AC_INIT([fam_atomic], [1.5], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
 AM_INIT_AUTOMAKE([1.11 parallel-tests])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
