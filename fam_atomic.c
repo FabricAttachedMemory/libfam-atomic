@@ -559,7 +559,7 @@ static inline void write_lock(struct rw_lock *lock)
 	xadd(&lock->value, WRITE_BIAS);
 	xadd(&lock->nr_write_waiters, 1);
 	for (;;) {
-		if (lock->value == WRITE_BIAS &&
+		if (lock->value == UNLOCKED &&
 		    cmpxchg(&lock->value, UNLOCKED, 0) == UNLOCKED)
 			break;
 	}
