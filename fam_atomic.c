@@ -30,6 +30,8 @@
 
 #define LOCK_PREFIX LOCK_PREFIX_HERE "\n\tlock; "
 
+#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+
 #define u32 unsigned int
 #define u64 unsigned long long
 
