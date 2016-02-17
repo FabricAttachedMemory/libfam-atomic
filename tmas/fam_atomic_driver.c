@@ -91,16 +91,37 @@ static int fam_atomic_release(struct inode *inode, struct file *file)
  */
 static inline unsigned long va_to_pa(unsigned long virt_addr)
 {
-	struct page *page = NULL;
-	unsigned long phys_addr, offset;
+	unsigned long phys_addr, offset, pfn, addres;
+	struct mm_struct *mm = current->mm;
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *ptep;
+	pte_t pte;
 
 	offset = virt_addr % PAGE_SIZE;
-	get_user_pages_fast(virt_addr, 1, 1, &page);
-	if (page == NULL)
+	address = virt_addr - offset;
+
+	pgd = pgd_offset(mm, address);
+	if (pgd_none(*pgd))
 		return -1;
 
-	phys_addr = page_to_phys(page) + offset;
+	pud = pud_offset(pgd, address);
+	if (pud_none(*pud))
+		return -1;
 
+	pmd = pmd_offset(pud, address);
+	if (pmd_none(*pmd))
+		return -1;
+
+	ptep = pte_offset_map(pmd, address);
+	pte = *ptep;
+
+	if (!pte_present(pte))
+		return -1;
+
+	pfn = pte_pfn(pte);
+	phys_addr = __pfn_to_phys(pfn) + offset;
 	return phys_addr;
 }
 
@@ -109,8 +130,9 @@ unsigned long zbridge_va_to_lza(unsigned long virt_addr)
 	unsigned long phys_addr, lza;
 
 	phys_addr = va_to_pa(virt_addr);
-	if (phys_addr == -1)
+	if (phys_addr == -1) {
 		return -1;
+	}
 
 	lza = pa_to_lza(phys_addr);
 
@@ -129,13 +151,6 @@ unsigned long lfs_offset_to_lza(int64_t offset)
 	 * and zbridge descriptor tables.
 	 */
 	lza = zbridge_va_to_lza((unsigned long)offset);
-
-	/*
-	 * TODO: For testing purposes, operate on the VA directly
-	 * until the zbridge driver provides support for looking
-	 * up the descriptor table to translate PA -> LZA.
-	 */
-//	lza = offset;
 
 	return lza;
 }
@@ -194,6 +209,9 @@ static int32_t zbridge_atomic_32(unsigned long lza, int32_t p32_0, int32_t p32_1
 
 	preempt_disable();
 
+	if (ioctl_num != FAM_ATOMIC_32_COMPARE_AND_STORE)
+		p32_1 = 0;
+
 	param0 = (__uint128_t)p32_0 << 96 | (__uint128_t)p32_1 << 32;
 
 	atomic_register = atomic_base + (get_cpu() * SIZEOF_ATOMIC_REGISTER);
@@ -233,6 +251,9 @@ static int64_t zbridge_atomic_64(unsigned long lza, int64_t p64_0, int64_t p64_1
 	__uint128_t param0;
 
 	preempt_disable();
+
+	if (ioctl_num != FAM_ATOMIC_64_COMPARE_AND_STORE)
+		p64_1 = 0;
 
 	param0 = (__uint128_t)p64_0 << 64 | (__uint128_t)p64_1;
 
@@ -328,6 +349,8 @@ static int __ioctl_32(struct fam_atomic_args_32 *args_ptr, unsigned int ioctl_nu
 		return -EFAULT;
 
 	lza = lfs_offset_to_lza(args.offset);
+	if (lza == (unsigned long)-1)
+		return -EFAULT;
 
 	result.p32_0 = zbridge_atomic_32(lza, args.p32_0, args.p32_1, ioctl_num);
 
@@ -352,6 +375,8 @@ static int __ioctl_64(struct fam_atomic_args_64 *args_ptr, unsigned int ioctl_nu
 		return -EFAULT;
 
 	lza = lfs_offset_to_lza(args.offset);
+	if (lza == (unsigned long)-1)
+		return -EFAULT;
 
 	result.p64_0 = zbridge_atomic_64(lza, args.p64_0, args.p64_1, ioctl_num);
 
@@ -376,6 +401,8 @@ static int __ioctl_128(struct fam_atomic_args_128 *args_ptr, unsigned int ioctl_
 		return -EFAULT;
 
 	lza = lfs_offset_to_lza((unsigned long)args.offset);
+	if (lza == (unsigned long)-1)
+		return -EFAULT;
 
 	zbridge_atomic_128(lza, args.p128_0, args.p128_1, prev, ioctl_num);
 
@@ -398,15 +425,15 @@ long fam_atomic_ioctl(struct file *file, unsigned int ioctl_num, unsigned long a
 
 	switch (ioctl_num) {
 
-	case FAM_ATOMIC_32_FETCH_AND_ADD:
-		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
-		break;
-
 	case FAM_ATOMIC_32_SWAP:
 		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
 		break;
 
 	case FAM_ATOMIC_32_COMPARE_AND_STORE:
+		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
+		break;
+
+	case FAM_ATOMIC_32_FETCH_AND_ADD:
 		ret = __ioctl_32((struct fam_atomic_args_32 *)arg, ioctl_num);
 		break;
 
