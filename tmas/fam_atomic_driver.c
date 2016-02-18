@@ -91,7 +91,7 @@ static int fam_atomic_release(struct inode *inode, struct file *file)
  */
 static inline unsigned long va_to_pa(unsigned long virt_addr)
 {
-	unsigned long phys_addr, offset, pfn, addres;
+	unsigned long phys_addr, offset, pfn, address;
 	struct mm_struct *mm = current->mm;
 	pgd_t *pgd;
 	pud_t *pud;
