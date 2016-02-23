@@ -498,7 +498,6 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 #endif
 }
 
-
 /*
  * A simple read/write lock for internal use within library.
  * The read lock will be taken significantly more often than
@@ -571,13 +570,22 @@ static inline void write_unlock(struct rw_lock *lock)
 	xadd(&lock->value, WRITE_BIAS);
 }
 
-/* Each node represents a registered NVM atomic region. */
+/*
+ * Each node represents a registered mmapped region.
+ *
+ * @region_start: Pointer to start of registered region
+ * @region_length: Length of registered region.
+ * @fd: File descriptor associated with the mmapped registered region.
+ * @offset: Offset between start of file to region_start.
+ * @use_zbridge_atomics: If true, use zbridge atomics,
+ *			 else use simualted atomics.
+ */
 struct node {
 	void *region_start;
 	size_t region_length;
 	int fd;
 	off_t region_offset;
-	/* Next node in the linked list. */
+	bool use_zbridge_atomics;
 	struct node *next;
 };
 
@@ -625,6 +633,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	new_node->region_length = region_length;
 	new_node->fd = fd;
 	new_node->region_offset = offset;
+	new_node->use_zbridge_atomics = false;
 
 #ifdef TMAS
 	/*
@@ -639,6 +648,10 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 		printf("has been installed on the system.\n");
 		return -1;
 	}
+
+	/* TODO: Currently, the offset is just the VA. */
+	if (check_zbridge_atomics(new_node->fd, (int64_t)region_start)
+		new_node->use_zbridge_atomics = true;
 #endif
 
 	/* TODO: Detect overlapping regions? */
@@ -678,6 +691,24 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 	list_del(&fam_atomic_region_list, prev, curr);
 
 	write_unlock(&fam_atomic_list_lock);
+}
+
+/*
+ * Check if it is possible to invoke a zbridge atomic read on
+ * the first 4 bytes specified by the (fd, offset) pair.
+ */
+static inline bool use_zbridge_atomics(int fd, int64_t offset)
+{
+	struct fam_atomic_args_32 args;
+
+	args.offset = offset;
+	args.p32_0 = 0;
+	args.p32_1 = 0;
+
+	if (__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args))
+		return false;
+
+	return true;
 }
 
 /*
