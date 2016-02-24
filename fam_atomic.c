@@ -462,21 +462,8 @@ static inline void ioctl_16(struct fam_atomic_args_128 *args, unsigned int opt)
 	}
 }
 
-/*
- * TODO: For now, we'll simulate the kernel ioctl interface in user
- *	 space, where the 'offset' field will be a VA to the atomics.
- *	 It is named __ioctl() instead of ioctl() to to avoid issues
- *	 with multiple declarations with this and the "real" ioctl().
- */
-static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
+static inline int simulated_ioctl(unsigned int opt, unsigned long args)
 {
-#ifdef TMAS
-	/*
-	 * On TMAS, we'll make the "real" ioctl() system call.
-	 */
-	return ioctl(fd, opt, args);
-#else
-
 	if (opt == FAM_ATOMIC_32_FETCH_AND_ADD ||
 	    opt == FAM_ATOMIC_32_SWAP ||
 	    opt == FAM_ATOMIC_32_COMPARE_AND_STORE) {
@@ -495,6 +482,23 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 	}
 
 	return 0;
+}
+
+/*
+ * TODO: For now, we'll simulate the kernel ioctl interface in user
+ *	 space, where the 'offset' field will be a VA to the atomics.
+ *	 It is named __ioctl() instead of ioctl() to to avoid issues
+ *	 with multiple declarations with this and the "real" ioctl().
+ */
+static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
+{
+#ifdef TMAS
+	/*
+	 * On TMAS, we'll make the "real" ioctl() system call.
+	 */
+	return ioctl(fd, opt, args);
+#else
+	return simulated_ioctl(opt, args);
 #endif
 }
 
