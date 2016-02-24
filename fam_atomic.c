@@ -697,7 +697,7 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
  * Check if it is possible to invoke a zbridge atomic read on
  * the first 4 bytes specified by the (fd, offset) pair.
  */
-static inline bool use_zbridge_atomics(int fd, int64_t offset)
+static inline bool check_zbridge_atomics(int fd, int64_t offset)
 {
 	struct fam_atomic_args_32 args;
 
