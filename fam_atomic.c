@@ -722,9 +722,10 @@ static inline bool check_zbridge_atomics(int fd, int64_t offset)
  * function to succeed. If the region containing the atomic has not been
  * registered, then this function will generate a segmentation fault.
  */
-static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
+static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
 	struct node *curr = NULL;
+	bool ret = false;
 
 	read_lock(&fam_atomic_list_lock);
 
@@ -762,6 +763,11 @@ static void fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	 */
 	*offset = (int64_t)address;
 #endif
+
+	if (curr->use_zbridge_atomics)
+		ret = true;
+
+	return ret;
 }
 
 int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
