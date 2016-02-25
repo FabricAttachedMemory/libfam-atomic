@@ -494,14 +494,10 @@ static inline int simulated_ioctl(unsigned int opt, unsigned long args)
  */
 static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 {
-#ifdef TMAS
 	/*
 	 * On TMAS, we'll make the "real" ioctl() system call.
 	 */
 	return ioctl(fd, opt, args);
-#else
-	return simulated_ioctl(opt, args);
-#endif
 }
 
 /*
