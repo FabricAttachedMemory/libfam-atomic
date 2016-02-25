@@ -735,23 +735,14 @@ static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 			break;
 	}
 
-	/*
-	 * No region containing the atomic has been registered.
-	 */
-	if (!curr) {
-		read_unlock(&fam_atomic_list_lock);
-		/*
-		 * Generate a segmentation fault.
-		 */
-		printf("ERROR: fam atomic variable used without being registered. NVM regions containing\n");
-		printf("       fam atomics must be registered with fam_atomic_register_region() before\n");
-		printf("       the fam atomics within the region can be used\n");
-		raise(SIGSEGV);
-	}
+	if (curr) {
+		*fd = curr->fd;
+		*offset = (int64_t)address - (int64_t)curr->region_start +
+			  (int64_t)curr->region_offset;
 
-	*fd = curr->fd;
-	*offset = (int64_t)address - (int64_t)curr->region_start +
-		  (int64_t)curr->region_offset;
+		if (curr->use_zbridge_atomics)
+			ret = true;
+	}
 
 	read_unlock(&fam_atomic_list_lock);
 
@@ -763,9 +754,6 @@ static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 	 */
 	*offset = (int64_t)address;
 #endif
-
-	if (curr->use_zbridge_atomics)
-		ret = true;
 
 	return ret;
 }
