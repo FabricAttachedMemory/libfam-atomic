@@ -763,13 +763,17 @@ int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_32 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p32_0 = increment;
 
-	__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args);
 
 	prev = args.p32_0;
 
@@ -782,13 +786,17 @@ int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_64 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p64_0 = increment;
 
-	__ioctl(fd, FAM_ATOMIC_64_FETCH_AND_ADD, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_64_FETCH_AND_ADD, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_64_FETCH_AND_ADD, (unsigned long)&args);
 
 	prev = args.p64_0;
 
@@ -801,13 +809,17 @@ int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_32 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p32_0 = value;
 
-	__ioctl(fd, FAM_ATOMIC_32_SWAP, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_32_SWAP, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_32_SWAP, (unsigned long)&args);
 
 	prev = args.p32_0;
 
@@ -820,13 +832,17 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_64 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p64_0 = value;
 
-	__ioctl(fd, FAM_ATOMIC_64_SWAP, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_64_SWAP, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_64_SWAP, (unsigned long)&args);
 
 	prev = args.p64_0;
 
@@ -840,14 +856,18 @@ void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t re
 	int64_t offset;
 	bool ret;
 	struct fam_atomic_args_128 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p128_0[0] = value[0];
 	args.p128_0[1] = value[1];
 
-	__ioctl(fd, FAM_ATOMIC_128_SWAP, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_128_SWAP, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_128_SWAP, (unsigned long)&args);
 
 	result[0] = args.p128_0[0];
 	result[1] = args.p128_0[1];
@@ -861,14 +881,18 @@ int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_32 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p32_0 = compare;
 	args.p32_1 = store;
 
-	__ioctl(fd, FAM_ATOMIC_32_COMPARE_AND_STORE, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_32_COMPARE_AND_STORE, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_32_COMPARE_AND_STORE, (unsigned long)&args);
 
 	prev = args.p32_0;
 
@@ -883,14 +907,18 @@ int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 	int fd;
 	int64_t offset;
 	struct fam_atomic_args_64 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p64_0 = compare;
 	args.p64_1 = store;
 
-	__ioctl(fd, FAM_ATOMIC_64_COMPARE_AND_STORE, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_64_COMPARE_AND_STORE, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_64_COMPARE_AND_STORE, (unsigned long)&args);
 
 	prev = args.p64_0;
 
@@ -907,8 +935,9 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 	int64_t offset;
 	bool ret;
 	struct fam_atomic_args_128 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
 	args.p128_0[0] = compare[0];
@@ -916,7 +945,10 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 	args.p128_1[0] = store[0];
 	args.p128_1[1] = store[1];
 
-	__ioctl(fd, FAM_ATOMIC_128_COMPARE_AND_STORE, (unsigned long)&args);
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_128_COMPARE_AND_STORE, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_128_COMPARE_AND_STORE, (unsigned long)&args);
 
 	result[0] = args.p128_0[0];
 	result[1] = args.p128_0[1];
@@ -939,11 +971,17 @@ extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 	int64_t offset;
 	bool ret;
 	struct fam_atomic_args_128 args;
+	bool use_zbridge_atomics;
 
-	fam_atomic_get_fd_offset(address, &fd, &offset);
+	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
 	args.offset = offset;
-	__ioctl(fd, FAM_ATOMIC_128_READ, (unsigned long)&args);
+
+	if (use_zbridge_atomics)
+		__ioctl(fd, FAM_ATOMIC_128_READ, (unsigned long)&args);
+	else
+		simulated_ioctl(FAM_ATOMIC_128_READ, (unsigned long)&args);
+
 
 	result[0] = args.p128_0[0];
 	result[1] = args.p128_0[1];
