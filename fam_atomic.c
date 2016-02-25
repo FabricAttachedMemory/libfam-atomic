@@ -659,6 +659,12 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	new_node->use_zbridge_atomics = false;
 
 	/*
+	 * zbridge support is only available on ARM64, so avoid the
+	 * overhead of check if the zbridge atomics should be used
+	 * on x86 systems which only use the simulated atomics.
+	 */
+#ifdef __aarch64__
+	/*
 	 * TODO: This is temporary code. On TMAS, the ioctls are
 	 * implemented in a separate driver and not a part of LFS, so
 	 * we'll open the device file for the driver and use that fd. If
@@ -678,6 +684,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 		if (check_zbridge_atomics(new_node->fd, (int64_t)region_start))
 			new_node->use_zbridge_atomics = true;
 	}
+#endif
 
 	/* TODO: Detect overlapping regions? */
 	write_lock(&fam_atomic_list_lock);
