@@ -746,14 +746,13 @@ static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 
 	read_unlock(&fam_atomic_list_lock);
 
-#ifdef TMAS
 	/*
-	 * We'll directly pass the VA to the ioctl rather than the
-	 * LFS file offset, since the ioctls for the atomics will be
-	 * in a separate driver and not part of LFS.
+	 * TODO: For now, we'll use the VA as the LFS file offset. On TMAS,
+	 * the ioctl for the atomics is in a separate driver, not part of
+	 * LFS, and requires the atomic VA. The simulated atomics also operate
+	 * directly on the VA.
 	 */
 	*offset = (int64_t)address;
-#endif
 
 	return ret;
 }
