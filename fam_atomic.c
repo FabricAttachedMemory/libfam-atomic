@@ -767,7 +767,7 @@ int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p32_0 = increment;
 
 	__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args);
@@ -786,7 +786,7 @@ int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p64_0 = increment;
 
 	__ioctl(fd, FAM_ATOMIC_64_FETCH_AND_ADD, (unsigned long)&args);
@@ -805,7 +805,7 @@ int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p32_0 = value;
 
 	__ioctl(fd, FAM_ATOMIC_32_SWAP, (unsigned long)&args);
@@ -824,7 +824,7 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p64_0 = value;
 
 	__ioctl(fd, FAM_ATOMIC_64_SWAP, (unsigned long)&args);
@@ -844,7 +844,7 @@ void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t re
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p128_0[0] = value[0];
 	args.p128_0[1] = value[1];
 
@@ -865,7 +865,7 @@ int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p32_0 = compare;
 	args.p32_1 = store;
 
@@ -887,7 +887,7 @@ int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p64_0 = compare;
 	args.p64_1 = store;
 
@@ -911,7 +911,7 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	args.p128_0[0] = compare[0];
 	args.p128_0[1] = compare[1];
 	args.p128_1[0] = store[0];
@@ -943,7 +943,7 @@ extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 
 	fam_atomic_get_fd_offset(address, &fd, &offset);
 
-	args.offset = (int64_t)address;
+	args.offset = offset;
 	__ioctl(fd, FAM_ATOMIC_128_READ, (unsigned long)&args);
 
 	result[0] = args.p128_0[0];
