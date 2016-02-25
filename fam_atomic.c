@@ -709,9 +709,9 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 		return;
 	}
 
-#ifdef TMAS
-	close(curr->fd);
-#endif
+	/* TODO: Temporary code for closing an opened TMAS device file. */
+	if (curr->use_zbridge_atomics)
+		close(curr->fd);
 
 	list_del(&fam_atomic_region_list, prev, curr);
 
