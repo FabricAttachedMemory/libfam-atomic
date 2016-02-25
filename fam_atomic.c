@@ -616,6 +616,24 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
 }
 
 /*
+ * Check if it is possible to invoke a zbridge atomic read on
+ * the first 4 bytes specified by the (fd, offset) pair.
+ */
+static inline bool check_zbridge_atomics(int fd, int64_t offset)
+{
+	struct fam_atomic_args_32 args;
+
+	args.offset = offset;
+	args.p32_0 = 0;
+	args.p32_1 = 0;
+
+	if (__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args))
+		return false;
+
+	return true;
+}
+
+/*
  * TODO: Convert this to a red-black binary search tree for O(log(n)) search.
  *
  * List of registered FAM atomic regions. This stores the information of the
@@ -695,24 +713,6 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
 	list_del(&fam_atomic_region_list, prev, curr);
 
 	write_unlock(&fam_atomic_list_lock);
-}
-
-/*
- * Check if it is possible to invoke a zbridge atomic read on
- * the first 4 bytes specified by the (fd, offset) pair.
- */
-static inline bool check_zbridge_atomics(int fd, int64_t offset)
-{
-	struct fam_atomic_args_32 args;
-
-	args.offset = offset;
-	args.p32_0 = 0;
-	args.p32_1 = 0;
-
-	if (__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args))
-		return false;
-
-	return true;
 }
 
 /*
