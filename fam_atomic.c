@@ -32,6 +32,8 @@
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 
+#define debug(message)
+
 #define u32 unsigned int
 #define u64 unsigned long long
 
@@ -616,6 +618,9 @@ static void list_del(struct list *list, struct node *prev, struct node *node)
 }
 
 /*
+ * TODO: Alternatively, we could check if the file associated with 'fd'
+ *       specified in the register function starts with '/lfs/'.
+ *
  * Check if it is possible to invoke a zbridge atomic read on
  * the first 4 bytes specified by the (fd, offset) pair.
  */
@@ -657,24 +662,26 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	new_node->region_offset = offset;
 	new_node->use_zbridge_atomics = false;
 
-#ifdef TMAS
 	/*
-	 * On TMAS, the ioctls are implemented in a separate driver
-	 * and not a part of LFS, so we'll open the device file for
-	 * the driver and use that fd.
+	 * TODO: This is temporary code. On TMAS, the ioctls are
+	 * implemented in a separate driver and not a part of LFS, so
+	 * we'll open the device file for the driver and use that fd. If
+	 * the driver is not installed and the fam_atomic device file is
+	 * not found, then we'll just use the simulated atomics. This
+	 * means that on TMAS with zbridge support, the user must make
+	 * sure that the fam atomic driver has been installed in order
+	 * for the library to use the zbridge atomics.
 	 */
 	new_node->fd = open("/dev/fam_atomic", O_RDWR);
-	if (new_node->fd == -1) {
-		printf("fam_atomic_register_region(): Unable to open device\n");
-		printf("file. Please verify that the fam_atomic TMAS driver\n");
-		printf("has been installed on the system.\n");
-		return -1;
-	}
+	if (new_node->fd != -1) {
+		debug("Warning: fam_atomic_register_region() found that this system\n");
+		debug("         does not have the fam atomic driver installed.\n");
+		debug("         The zbridge atomics would not get used\n");
 
-	/* TODO: Currently, the offset is just the VA. */
-	if (check_zbridge_atomics(new_node->fd, (int64_t)region_start)
-		new_node->use_zbridge_atomics = true;
-#endif
+		/* TODO: Currently, the offset is just the VA. */
+		if (check_zbridge_atomics(new_node->fd, (int64_t)region_start))
+			new_node->use_zbridge_atomics = true;
+	}
 
 	/* TODO: Detect overlapping regions? */
 	write_lock(&fam_atomic_list_lock);
