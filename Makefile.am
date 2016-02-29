@@ -14,7 +14,7 @@
 #  Lesser General Public License for more details.
 #
 
-SUBDIRS=. tests doc
+SUBDIRS= rcu-rbtree . tests doc
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -88,4 +88,4 @@ include_HEADERS = fam_atomic.h
 libfam_atomic_la_LDFLAGS =			\
 	-version-info @LIBT_VERSION_INFO@ -no-undefined $(export_symbols)
 
-libfam_atomic_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT_LIBS)
+libfam_atomic_la_LIBADD = $(ICONV_LIBS) $(FREETYPE_LIBS) $(LIBXML2_LIBS) $(EXPAT_LIBS) rcu-rbtree/librcu_rbtree.a

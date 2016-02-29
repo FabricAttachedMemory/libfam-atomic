@@ -158,6 +158,7 @@ dnl
 AC_CONFIG_FILES([
 Makefile
 tests/Makefile
+rcu-rbtree/Makefile
 doc/Makefile
 fam_atomic.pc
 ])
