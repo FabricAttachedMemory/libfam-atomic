@@ -19,7 +19,11 @@
 #include <assert.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <linux/futex.h>
+#include <sys/syscall.h>
 #include "fam_atomic.h"
+#include "rcu-rbtree/urcu-bp.h"
+#include "rcu-rbtree/rcurbtree.h"
 
 #define LOCK_PREFIX_HERE                  \
 	".pushsection .smp_locks,\"a\"\n" \
@@ -570,6 +574,211 @@ static inline void write_lock(struct rw_lock *lock)
 static inline void write_unlock(struct rw_lock *lock)
 {
 	xadd(&lock->value, WRITE_BIAS);
+}
+
+/*
+ * Spinlock for internal use for the library to protect write access
+ * to the RCU rbtree. We take this lock when inserting and removing
+ * nodes from the tree when registering and unregistering regions.
+ *
+ * NOTE: The lock does not need be taken for read access of the RCU
+ * rbtree since RCU allows lockless reads. Only writes require mutual
+ * exclusion.
+ */
+struct rcu_write_mutex {
+	int value;
+	int nr_waiters;
+} __attribute__((__aligned__(64)));
+
+#define UNLOCKED_VAL { 0, 0 }
+
+#define futex(uaddr, op, val, timeout, uaddr2, val3) \
+	syscall(SYS_futex, uaddr, op, val, timeout, uaddr2, val3)
+
+static inline int futex_wait(int *uaddr, int val)
+{
+	return futex(uaddr, FUTEX_WAIT, val, NULL, NULL, 0);
+}
+
+static inline int futex_wake(int *uaddr, int val)
+{
+	return futex(uaddr, FUTEX_WAKE, val, NULL, NULL, 0);
+}
+
+static void rcu_write_mutex_lock(struct rcu_write_mutex *lock)
+{
+	/* Fastpath */
+	if (cmpxchg(&lock->value, 0, 1) == 0)
+		return;
+
+	/* Slowpath: lock is contended */
+	xadd(&lock->nr_waiters, 1);
+
+	for (;;) {
+		/*
+		 * Try once more to acquire the lock after incrementing
+		 * nr_waiters. Subsequently, this is the operation to
+		 * try acquiring the lock each time this thread gets
+		 * woken up by futex_wake().
+		 */
+		if (cmpxchg(&lock->value, 0, 1) == 0)
+			return;
+
+		/* Sleep until owner releases lock. */
+		futex_wait(&lock->value, 1);
+	}
+
+	xadd(&lock->nr_waiters, -1);
+}
+
+static void rcu_write_spin_unlock(struct rcu_write_mutex *lock)
+{
+	/* The unlock operation just requires a regular store */
+	lock->value = 0;
+	__sync_synchronize();
+
+	/*
+	 * Fastpath, return if there are no waiters.
+	 */
+	if (!ACCESS_ONCE(lock->nr_waiters))
+		return;
+
+	futex_wake(&lock->value, 1);
+}
+
+/*
+ * Each node in the rbtree represents a registered mmapped region.
+ *
+ * @region_start: Pointer to start of registered region
+ * @region_length: Length of registered region.
+ * @fd: File descriptor associated with the mmapped registered region.
+ * @offset: Offset between start of file to region_start.
+ * @use_zbridge_atomics: If true, use zbridge atomics,
+ *			 else use simualted atomics.
+ */
+struct region {
+	void *rbtree_key;
+	void *region_start;
+	size_t region_length;
+	int fd;
+	off_t region_offset;
+	bool use_zbridge_atomics;
+} __attribute__((__aligned__(64)));
+
+int rbtree_compare(void *ptr1, void *ptr2)
+{
+	struct region *region1 = (struct region *)ptr1;
+	struct region *region2 = (struct region *)ptr2;
+
+	/*
+	 * NOTE: When searching for regions, we need to check if the
+	 *       VA of the atomic is within a region. That logic does
+	 *       not need to be taken into account here. The rcu-rbtree
+	 *       insert function takes a "begin" and "end" value, and
+	 *       the rbtree search function checks for if the key is
+	 *       within the range between begin and end.
+	 *
+	 *       Thus, the only thing we need to compare in this
+	 *       generic rbtree compare function are the "keys".
+	 */
+	if (region1->rbtree_key < region1->rbtree_key)
+		return -1;
+	else if (region1->rbtree_key > region1->rbtree_key)
+		return 1;
+	else
+		return 0;
+}
+
+void rbtree_free(void *ptr)
+{
+	struct rcu_rbtree_node *node = (struct rcu_rbtree_node *)ptr;
+
+	free(node->begin);
+	free(node->end);
+	free(ptr);
+}
+
+static DEFINE_RCU_RBTREE(rbtree, rbtree_compare, malloc, rbtree_free, call_rcu);
+static struct rcu_write_mutex rcu_rbtree_lock = { 0 };
+
+/*
+ * Given information about a registered region, insert a node in the
+ * rbtree representing the registered region.
+ */
+int rbtree_region_insert(void *region_start, size_t region_length,
+			 int fd, off_t offset, bool use_zbridge_atomics)
+{
+	struct region *begin, *end;
+
+	begin = malloc(sizeof(struct region));
+	if (!begin)
+		return -1;
+
+	end = malloc(sizeof(struct region));
+	if (!end) {
+		free(begin);
+		return -1;
+	}
+
+	/*
+	 * The rbtree insert function takes both a "begin" and an "end"
+	 * node as parameters, and the default rbtree search function
+	 * checks if a key is within the range between begin" and end.
+	 * Thus, we need to create both a "begin" and "end" region to
+	 * satisfy this interface. The "end" node will only contain the
+	 * key value. The rest of the information about the registered
+	 * region will only be stored in the "begin" node.
+	 */
+	begin->rbtree_key = region_start;
+	end->rbtree_key = region_start + region_length;
+
+	begin->rbtree_key = region_start;
+	begin->region_start = region_start;
+	begin->region_length = region_length;
+	begin->fd = fd;
+	begin->region_offset = offset;
+	begin->use_zbridge_atomics = use_zbridge_atomics;
+
+	/*
+	 * RCU allows lockless reads, but write access still requires
+	 * locking. So we'll take a spinlock before inserting the nodes
+	 * in the rbtree.
+	 */
+	rcu_write_spin_lock(&rcu_rbtree_lock);
+	rcu_read_lock();
+
+	rcu_rbtree_insert(&rbtree, (void *)begin, (void *)end);
+
+	rcu_read_unlock();
+	rcu_write_spin_unlock(&rcu_rbtree_lock);
+
+	return 0;
+}
+
+int rbtree_region_remove(void *region_start, size_t region_length)
+{
+	int ret = -1;
+	struct region key;
+	struct rcu_rbtree_node *node;
+
+	key.rbtree_key = region_start;
+
+        /*
+         * RCU allows lockless reads, but write access still requires
+         * locking. So we'll take a spinlock before inserting the nodes
+         * in the rbtree.
+         */
+        rcu_write_spin_lock(&rcu_rbtree_lock);
+        rcu_read_lock();
+
+	node = rcu_rbtree_search(&rbtree, rbtree.root, &key);
+	if (node) {
+		ret = 0;
+		rcu_rbtree_remove(&rbtree, node);
+	}
+
+	rcu_read_unlock();
+	rcu_write_spin_unlock(&rcu_rbtree_lock);
 }
 
 /*
