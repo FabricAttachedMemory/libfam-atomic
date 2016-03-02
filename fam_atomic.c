@@ -781,6 +781,35 @@ int rbtree_region_remove(void *region_start, size_t region_length)
 	rcu_write_spin_unlock(&rcu_rbtree_lock);
 }
 
+int rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use_zbridge_atomics)
+{
+	int ret = -1;
+	struct region key;
+	struct rcu_rbtree_node *node;
+
+	key.rbtree_key = address;
+
+	/*
+	 * Reads only require a call to "rcu_read_lock" and don't require
+	 * any additional locking. No blocking should occur here.
+	 */
+	rcu_read_lock();
+
+	node = rcu_rbtree_search(&rbtree, rbtree.root, &key);
+	if (node) {
+		struct region *region = (struct region *)node->begin;
+
+		ret = 0;
+		*fd = region->fd;
+		*region_offset = region->region_offset;
+		*use_zbridge_atomics = region->use_zbridge_atomics;
+	}
+
+	rcu_read_unlock();
+
+	return ret;
+}
+
 /*
  * Each node represents a registered mmapped region.
  *
