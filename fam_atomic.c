@@ -44,9 +44,16 @@
 void fam_atomic_compare_exchange_wrong_size(void);
 void fam_atomic_xadd_wrong_size(void);
 void fam_atomic_xchg_wrong_size(void);
+void store_release_wrong_size(void);
 void fam_atomic_arch_not_supported(void);
 
 #ifdef __x86_64__
+
+#define store_release(ptr, val) 		\
+do {						\
+	__asm__ __volatile__("": : :"memory");	\
+	ACCESS_ONCE(*ptr) =  val;		\
+} while (0);
 
 #define __x86_raw_cmpxchg(ptr, old, new, size, lock)		\
 ({								\
@@ -123,6 +130,22 @@ void fam_atomic_arch_not_supported(void);
 	__x86_cmpxchg16(LOCK_PREFIX, p1, p2, o1, o2, n1, n2)
 
 #elif __aarch64__
+
+#define store_release(ptr, val)                                         \
+do {                                                                    \
+        switch (sizeof(*ptr)) {                                         \
+        case 4:                                                         \
+                asm volatile ("stlr %w1, %0"                            \
+                                : "=Q" (*ptr) : "r" (val) : "memory");  \
+                break;                                                  \
+        case 8:                                                         \
+                asm volatile ("stlr %1, %0"                             \
+                                : "=Q" (*ptr) : "r" (val) : "memory");  \
+                break;                                                  \
+	default:							\
+		store_release_wrong_size();				\
+        }                                                               \
+} while (0)
 
 static inline int arm_atomic_add_return(void *ptr, int inc)
 {
@@ -577,20 +600,22 @@ static inline void write_unlock(struct rw_lock *lock)
 }
 
 /*
- * Spinlock for internal use for the library to protect write access
+ * Mutex for internal use for the library to protect write access
  * to the RCU rbtree. We take this lock when inserting and removing
  * nodes from the tree when registering and unregistering regions.
  *
  * NOTE: The lock does not need be taken for read access of the RCU
  * rbtree since RCU allows lockless reads. Only writes require mutual
  * exclusion.
+ *
+ * Benchmarks show this is more efficient than pthread_mutex, mainly
+ * due to using a store-release in the unlock path. Use mutex intead
+ * of a ticket lock to avoid preemption issues that occur with fair
+ * user space spinlocks.
  */
 struct rcu_write_mutex {
-	int value;
-	int nr_waiters;
+	int futex;
 } __attribute__((__aligned__(64)));
-
-#define UNLOCKED_VAL { 0, 0 }
 
 #define futex(uaddr, op, val, timeout, uaddr2, val3) \
 	syscall(SYS_futex, uaddr, op, val, timeout, uaddr2, val3)
@@ -605,45 +630,70 @@ static inline int futex_wake(int *uaddr, int val)
 	return futex(uaddr, FUTEX_WAKE, val, NULL, NULL, 0);
 }
 
-static void rcu_write_mutex_lock(struct rcu_write_mutex *lock)
+static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
 {
 	/* Fastpath */
-	if (cmpxchg(&lock->value, 0, 1) == 0)
+	if (cmpxchg(&mutex->futex, 0, 1) == 0)
 		return;
 
-	/* Slowpath: lock is contended */
-	xadd(&lock->nr_waiters, 1);
-
-	for (;;) {
+	/* Slowpath */
+        for (;;) {
 		/*
-		 * Try once more to acquire the lock after incrementing
-		 * nr_waiters. Subsequently, this is the operation to
-		 * try acquiring the lock each time this thread gets
-		 * woken up by futex_wake().
+		 * The futex timeout is mainly a safety mechanism. In almost
+		 * all cases, the next waiter gets efficiently woken up by
+		 * futex_wake() in the unlock path.
+		 *
+		 * The purpose of the timeout is that since we're using
+		 * store-release instead of an atomic exchange to improve the
+		 * performance in the unlock path, there is a "potential" race
+		 * condition that would cause a missed futex_wake(). We address
+		 * this by specifying a timeout on the futex to protect against
+		 * a missed futex_wake().
 		 */
-		if (cmpxchg(&lock->value, 0, 1) == 0)
-			return;
+		int prev;
+                struct timespec timeout;
+                timeout.tv_sec = 0;
+                timeout.tv_nsec = 1000000;
 
-		/* Sleep until owner releases lock. */
-		futex_wait(&lock->value, 1);
-	}
+		/*
+		 * Set the futex to state "2" to indicate that the
+		 * lock contains waiters so that the unlocker calls
+		 * futex_wake() to wake up a waiter.
+		 */
+                if (mutex->futex != 2) {
+                        prev = xchg(&mutex->futex, 2);
 
-	xadd(&lock->nr_waiters, -1);
+			/*
+			 * Return if we acquired the lock.
+			 */
+                        if (prev == 0)
+                                return;
+                }
+
+                futex_wait_timeout(&mutex->futex, 2, &timeout);
+        }
 }
 
-static void rcu_write_spin_unlock(struct rcu_write_mutex *lock)
+static void rcu_write_spin_unlock(struct rcu_write_mutex *mutex)
 {
-	/* The unlock operation just requires a regular store */
-	lock->value = 0;
-	__sync_synchronize();
+	/*
+	 * Optimization: We use store-release here in order to avoid using
+	 * an atomic exchange. This is fine, because the lock function has
+	 * a safety mechanism where waiters periodically wake up (by
+	 * specifying a timeout in futex_wait). By doing this, we greatly
+	 * improve performance of the unlock operation, as measured by
+	 * performance tests.
+	 */
+	int prev = mutex->futex;
+	store_release(&mutex->futex, 0);
 
 	/*
-	 * Fastpath, return if there are no waiters.
+	 * Fastpath: there are no waiters to wake up, so return.
 	 */
-	if (!ACCESS_ONCE(lock->nr_waiters))
+	if (prev != 2)
 		return;
 
-	futex_wake(&lock->value, 1);
+	futex_wake(&mutex->futex, 1);
 }
 
 /*
