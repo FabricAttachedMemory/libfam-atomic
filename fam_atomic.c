@@ -607,92 +607,71 @@ static inline void write_unlock(struct rw_lock *lock)
  * NOTE: The lock does not need be taken for read access of the RCU
  * rbtree since RCU allows lockless reads. Only writes require mutual
  * exclusion.
- *
- * Benchmarks show this is more efficient than pthread_mutex, mainly
- * due to using a store-release in the unlock path. Use mutex intead
- * of a ticket lock to avoid preemption issues that occur with fair
- * user space spinlocks.
  */
 struct rcu_write_mutex {
+	/*
+	 * 1 indicates the mutex is available.
+	 * 0 indicates the mutex is acquired with no waiters.
+	 * < 0 indicates the mutex is acquired with waiters.
+	 */
 	int futex;
 } __attribute__((__aligned__(64)));
 
-#define futex(uaddr, op, val, timeout) \
-	syscall(SYS_futex, uaddr, op, val, timeout, NULL, 0)
-
-static inline int futex_wait(int *uaddr, int val, struct timespec *timeout)
+static inline int futex_wait(int *uaddr, int val)
 {
-        return futex(uaddr, FUTEX_WAIT, val, timeout);
+	return syscall(SYS_futex, uaddr, FUTEX_WAIT, val, NULL, NULL, 0);
 }
 
 static inline int futex_wake(int *uaddr, int val)
 {
-	return futex(uaddr, FUTEX_WAKE, val, NULL);
+	return syscall(SYS_futex, uaddr, FUTEX_WAKE, val, NULL, NULL, 0);
 }
 
 static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
 {
-	/* Fastpath */
-	if (cmpxchg(&mutex->futex, 0, 1) == 0)
+	/*
+	 * Fastpath. Decrement the futex. If the futex was 1, then
+	 * the lock was available, and we now own the lock.
+	 */
+	if (__atomic_fetch_sub(&mutex->futex, 1, __ATOMIC_ACQUIRE) == 1)
 		return;
 
 	/* Slowpath */
         for (;;) {
-		struct timespec timeout;
-		int prev;
+		int val = mutex->futex;
 
 		/*
-		 * Set the futex to state "2" to indicate that the
-		 * lock contains waiters so that the unlocker calls
-		 * futex_wake() to wake up a waiter.
+		 * Before this thread goes to sleep, we need to guarantee
+		 * that the futex is a negative value to indicate that
+		 * there are waiters so that the unlocker would call
+		 * futex_wake() to wake up the next waiter in the queue.
 		 */
-                if (mutex->futex != 2) {
-                        prev = xchg(&mutex->futex, 2);
-
-			/*
-			 * Return if we acquired the lock.
-			 */
-                        if (prev == 0)
-                                return;
+                if (val >= 0) {
+			val = -1;
+                        if (__atomic_exchange_n(&mutex->futex, val, __ATOMIC_ACQUIRE))
+				return;
                 }
 
 		/*
-		 * The futex timeout is mainly a safety mechanism. In almost
-		 * all cases, the next waiter gets efficiently woken up by
-		 * futex_wake() in the unlock path.
-		 *
-		 * The purpose of the timeout is that since we're using
-		 * store-release instead of an atomic exchange to improve the
-		 * performance in the unlock path, there is a "potential" race
-		 * condition that would cause a missed futex_wake(). We address
-		 * this by specifying a timeout on the futex to protect against
-		 * a missed futex_wake().
+		 * Go to sleep until the next thread in the futex queue
+		 * wakes up this thread when it call futex_wake().
 		 */
-                timeout.tv_sec = 0;
-                timeout.tv_nsec = 1000000;
-                futex_wait(&mutex->futex, 2, &timeout);
+                futex_wait(&mutex->futex, val);
         }
 }
 
 static void rcu_write_mutex_unlock(struct rcu_write_mutex *mutex)
 {
 	/*
-	 * Optimization: We use store-release here in order to avoid using
-	 * an atomic exchange. This is fine, because the lock function has
-	 * a safety mechanism where waiters periodically wake up (by
-	 * specifying a timeout in futex_wait). By doing this, we greatly
-	 * improve performance of the unlock operation, as measured by
-	 * performance tests.
+	 * Fastpath: If the previous futex value was 0, then
+	 * there were no waiters and we can return.
 	 */
-	int prev = mutex->futex;
-	store_release(&mutex->futex, 0);
-
-	/*
-	 * Fastpath: there are no waiters to wake up, so return.
-	 */
-	if (prev != 2)
+	if (__atomic_exchange_n(&mutex->futex, 1, __ATOMIC_RELEASE) == 0)
 		return;
 
+	/*
+	 * Else there are waiters. Wake up next waiter in futex queue.
+	 */
 	futex_wake(&mutex->futex, 1);
 }
 
@@ -749,7 +728,7 @@ void rbtree_free(void *ptr)
 }
 
 static DEFINE_RCU_RBTREE(rbtree, rbtree_compare, malloc, rbtree_free, call_rcu);
-static struct rcu_write_mutex rcu_rbtree_lock = { 0 };
+static struct rcu_write_mutex rcu_rbtree_lock = { 1 };
 
 /*
  * Given information about a registered region, insert a node in the
