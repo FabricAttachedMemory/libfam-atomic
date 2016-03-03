@@ -773,13 +773,13 @@ int rbtree_region_insert(void *region_start, size_t region_length,
 	 * locking. So we'll take a spinlock before inserting the nodes
 	 * in the rbtree.
 	 */
-	rcu_write_spin_lock(&rcu_rbtree_lock);
+	rcu_write_mutex_lock(&rcu_rbtree_lock);
 	rcu_read_lock();
 
 	rcu_rbtree_insert(&rbtree, (void *)begin, (void *)end);
 
 	rcu_read_unlock();
-	rcu_write_spin_unlock(&rcu_rbtree_lock);
+	rcu_write_mutex_unlock(&rcu_rbtree_lock);
 
 	return 0;
 }
