@@ -710,9 +710,9 @@ int rbtree_compare(void *ptr1, void *ptr2)
 	 *       Thus, the only thing we need to compare in this
 	 *       generic rbtree compare function are the "keys".
 	 */
-	if (region1->rbtree_key < region1->rbtree_key)
+	if (region1->rbtree_key < region2->rbtree_key)
 		return -1;
-	else if (region1->rbtree_key > region1->rbtree_key)
+	else if (region1->rbtree_key > region2->rbtree_key)
 		return 1;
 	else
 		return 0;
