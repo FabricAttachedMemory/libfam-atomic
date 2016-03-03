@@ -674,7 +674,7 @@ static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
         }
 }
 
-static void rcu_write_spin_unlock(struct rcu_write_mutex *mutex)
+static void rcu_write_mutex_unlock(struct rcu_write_mutex *mutex)
 {
 	/*
 	 * Optimization: We use store-release here in order to avoid using
