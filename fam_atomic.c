@@ -801,7 +801,7 @@ int rbtree_region_remove(void *region_start, size_t region_length)
         rcu_read_lock();
 
 	node = rcu_rbtree_search(&rbtree, rbtree.root, &key);
-	if (node) {
+	if (!rcu_rbtree_is_nil(&rbtree, node)) {
 		ret = 0;
 		rcu_rbtree_remove(&rbtree, node);
 	}
@@ -825,7 +825,7 @@ int rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use
 	rcu_read_lock();
 
 	node = rcu_rbtree_search(&rbtree, rbtree.root, &key);
-	if (node) {
+	if (!rcu_rbtree_is_nil(&rbtree, node)) {
 		struct region *region = (struct region *)node->begin;
 
 		ret = 0;
