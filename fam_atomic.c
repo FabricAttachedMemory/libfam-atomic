@@ -617,17 +617,17 @@ struct rcu_write_mutex {
 	int futex;
 } __attribute__((__aligned__(64)));
 
-#define futex(uaddr, op, val, timeout, uaddr2, val3) \
-	syscall(SYS_futex, uaddr, op, val, timeout, uaddr2, val3)
+#define futex(uaddr, op, val, timeout) \
+	syscall(SYS_futex, uaddr, op, val, timeout, NULL, 0)
 
-static inline int futex_wait(int *uaddr, int val)
+static inline int futex_wait(int *uaddr, int val, struct timespec *timeout)
 {
-	return futex(uaddr, FUTEX_WAIT, val, NULL, NULL, 0);
+        return futex(uaddr, FUTEX_WAIT, val, timeout);
 }
 
 static inline int futex_wake(int *uaddr, int val)
 {
-	return futex(uaddr, FUTEX_WAKE, val, NULL, NULL, 0);
+	return futex(uaddr, FUTEX_WAKE, val, NULL);
 }
 
 static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
@@ -638,22 +638,8 @@ static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
 
 	/* Slowpath */
         for (;;) {
-		/*
-		 * The futex timeout is mainly a safety mechanism. In almost
-		 * all cases, the next waiter gets efficiently woken up by
-		 * futex_wake() in the unlock path.
-		 *
-		 * The purpose of the timeout is that since we're using
-		 * store-release instead of an atomic exchange to improve the
-		 * performance in the unlock path, there is a "potential" race
-		 * condition that would cause a missed futex_wake(). We address
-		 * this by specifying a timeout on the futex to protect against
-		 * a missed futex_wake().
-		 */
+		struct timespec timeout;
 		int prev;
-                struct timespec timeout;
-                timeout.tv_sec = 0;
-                timeout.tv_nsec = 1000000;
 
 		/*
 		 * Set the futex to state "2" to indicate that the
@@ -670,7 +656,21 @@ static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
                                 return;
                 }
 
-                futex_wait_timeout(&mutex->futex, 2, &timeout);
+		/*
+		 * The futex timeout is mainly a safety mechanism. In almost
+		 * all cases, the next waiter gets efficiently woken up by
+		 * futex_wake() in the unlock path.
+		 *
+		 * The purpose of the timeout is that since we're using
+		 * store-release instead of an atomic exchange to improve the
+		 * performance in the unlock path, there is a "potential" race
+		 * condition that would cause a missed futex_wake(). We address
+		 * this by specifying a timeout on the futex to protect against
+		 * a missed futex_wake().
+		 */
+                timeout.tv_sec = 0;
+                timeout.tv_nsec = 1000000;
+                futex_wait(&mutex->futex, 2, &timeout);
         }
 }
 
