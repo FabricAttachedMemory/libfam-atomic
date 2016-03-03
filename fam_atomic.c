@@ -648,7 +648,7 @@ static void rcu_write_mutex_lock(struct rcu_write_mutex *mutex)
 		 */
                 if (val >= 0) {
 			val = -1;
-                        if (__atomic_exchange_n(&mutex->futex, val, __ATOMIC_ACQUIRE))
+                        if (__atomic_exchange_n(&mutex->futex, val, __ATOMIC_ACQUIRE) == 1)
 				return;
                 }
 
@@ -797,7 +797,7 @@ int rbtree_region_remove(void *region_start, size_t region_length)
          * locking. So we'll take a spinlock before inserting the nodes
          * in the rbtree.
          */
-        rcu_write_spin_lock(&rcu_rbtree_lock);
+        rcu_write_mutex_lock(&rcu_rbtree_lock);
         rcu_read_lock();
 
 	node = rcu_rbtree_search(&rbtree, rbtree.root, &key);
@@ -807,7 +807,7 @@ int rbtree_region_remove(void *region_start, size_t region_length)
 	}
 
 	rcu_read_unlock();
-	rcu_write_spin_unlock(&rcu_rbtree_lock);
+	rcu_write_mutex_unlock(&rcu_rbtree_lock);
 }
 
 int rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use_zbridge_atomics)
