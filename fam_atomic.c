@@ -810,7 +810,8 @@ int rcu_rbtree_region_remove(void *region_start, size_t region_length)
 	rcu_write_mutex_unlock(&rcu_rbtree_lock);
 }
 
-int rcu_rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use_zbridge_atomics)
+int rcu_rbtree_region_search(void *address, int *fd, off_t *region_offset,
+			     bool *use_zbridge_atomics)
 {
 	int ret = -1;
 	struct region key;
@@ -911,7 +912,76 @@ static inline bool check_zbridge_atomics(int fd, int64_t offset)
 static struct list fam_atomic_region_list = { NULL };
 static struct rw_lock fam_atomic_list_lock = { UNLOCKED, 0 };
 
+
 int fam_atomic_register_region(void *region_start, size_t region_length,
+			       int fd, off_t offset)
+{
+	bool use_zbridge_atomics = false;
+
+	/*
+	 * zbridge support is only available on ARM64, so avoid the
+	 * overhead of check if the zbridge atomics should be used
+	 * on x86 systems which only use the simulated atomics.
+	 */
+#ifdef __aarch64__
+	/*
+	 * TODO: This is temporary code. On TMAS, the ioctls are
+	 * implemented in a separate driver and not a part of LFS, so
+	 * we'll open the device file for the driver and use that fd. If
+	 * the driver is not installed and the fam_atomic device file is
+	 * not found, then we'll just use the simulated atomics. This
+	 * means that on TMAS with zbridge support, the user must make
+	 * sure that the fam atomic driver has been installed in order
+	 * for the library to use the zbridge atomics.
+	 */
+	fd = open("/dev/fam_atomic", O_RDWR);
+	if (fd != -1) {
+		debug("Warning: fam_atomic_register_region() found that this system\n");
+		debug("         does not have the fam atomic driver installed.\n");
+		debug("         The zbridge atomics would not get used\n");
+
+		/* TODO: Currently, the offset is just the VA. */
+		if (check_zbridge_atomics(fd, (int64_t)region_start))
+			use_zbridge_atomics = true;
+	}
+#endif
+
+	rcu_rbtree_region_insert(region_start, region_length, fd, offset,
+				 use_zbridge_atomics);
+}
+
+void fam_atomic_unregister_region(void *region_start, size_t region_length)
+{
+	rcu_rbtree_region_remove(region_start, region_length);
+}
+
+/*
+ * Returns true if we should use zbridge atomics, else returns false.
+ */
+static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
+{
+	struct node *curr = NULL;
+	bool ret = false;
+	bool use_zbridge_atomics;
+	int lfs_fd;
+
+	rcu_rbtree_region_search(address, fd, offset, &use_zbridge_atomics);
+
+	if (use_zbridge_atomics)
+		ret = true;
+
+	/*
+	 * TODO: For now, we'll use the VA as the LFS file offset. On TMAS,
+	 * the ioctl for the atomics is in a separate driver, not part of
+	 * LFS, and requires the atomic VA. The simulated atomics also operate
+	 * directly on the VA.
+	 */
+	*offset = (int64_t)address;
+
+	return ret;
+}
+
+int __fam_atomic_register_region(void *region_start, size_t region_length,
 			       int fd, off_t offset)
 {
 	struct node *new_node = malloc(sizeof(struct node));
@@ -961,7 +1031,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	return 0;
 }
 
-void fam_atomic_unregister_region(void *region_start, size_t region_length)
+void __fam_atomic_unregister_region(void *region_start, size_t region_length)
 {
 	struct node *curr, *prev;
 
@@ -999,7 +1069,7 @@ void fam_atomic_unregister_region(void *region_start, size_t region_length)
  * function to succeed. If the region containing the atomic has not been
  * registered, then this function will generate a segmentation fault.
  */
-static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
+static bool __fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 {
 	struct node *curr = NULL;
 	bool ret = false;
