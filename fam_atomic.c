@@ -694,7 +694,7 @@ struct region {
 	bool use_zbridge_atomics;
 } __attribute__((__aligned__(64)));
 
-int rbtree_compare(void *ptr1, void *ptr2)
+int rcu_rbtree_region_compare(void *ptr1, void *ptr2)
 {
 	struct region *region1 = (struct region *)ptr1;
 	struct region *region2 = (struct region *)ptr2;
@@ -718,7 +718,7 @@ int rbtree_compare(void *ptr1, void *ptr2)
 		return 0;
 }
 
-void rbtree_free(void *ptr)
+void rcu_rbtree_region_free(void *ptr)
 {
 	struct rcu_rbtree_node *node = (struct rcu_rbtree_node *)ptr;
 
@@ -727,15 +727,15 @@ void rbtree_free(void *ptr)
 	free(ptr);
 }
 
-static DEFINE_RCU_RBTREE(rbtree, rbtree_compare, malloc, rbtree_free, call_rcu);
+static DEFINE_RCU_RBTREE(rbtree, rcu_rbtree_region_compare, malloc, rcu_rbtree_region_free, call_rcu);
 static struct rcu_write_mutex rcu_rbtree_lock = { 1 };
 
 /*
  * Given information about a registered region, insert a node in the
  * rbtree representing the registered region.
  */
-int rbtree_region_insert(void *region_start, size_t region_length,
-			 int fd, off_t offset, bool use_zbridge_atomics)
+int rcu_rbtree_region_insert(void *region_start, size_t region_length,
+			     int fd, off_t offset, bool use_zbridge_atomics)
 {
 	struct region *begin, *end;
 
@@ -784,7 +784,7 @@ int rbtree_region_insert(void *region_start, size_t region_length,
 	return 0;
 }
 
-int rbtree_region_remove(void *region_start, size_t region_length)
+int rcu_rbtree_region_remove(void *region_start, size_t region_length)
 {
 	int ret = -1;
 	struct region key;
@@ -810,7 +810,7 @@ int rbtree_region_remove(void *region_start, size_t region_length)
 	rcu_write_mutex_unlock(&rcu_rbtree_lock);
 }
 
-int rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use_zbridge_atomics)
+int rcu_rbtree_region_search(void *address, int *fd, off_t *region_offset, bool *use_zbridge_atomics)
 {
 	int ret = -1;
 	struct region key;
