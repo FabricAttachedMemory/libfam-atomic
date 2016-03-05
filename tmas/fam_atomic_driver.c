@@ -64,15 +64,27 @@ static void *atomic_base;
 #define SIZEOF_ATOMIC_REGISTER	64000
 
 /* Offset to result HSRs for each atomic operation */
-#define CAS_OFFSET	0xF0
-#define FA_OFFSET	0xE0
-#define	SWAP_OFFSET	0xD0
-#define READ_OFFSET	0xC0
+#define CAS_OFFSET      0x330
+#define FA_OFFSET       0x320
+#define SWAP_OFFSET     0x310
+#define READ_OFFSET     0x300
 
-/* Offsets to the address/paramter HSRs */
-#define P0_OFFSET	0X0
-#define	P1_OFFSET	0X40
-#define ADDRESS_OFFSET	0x80
+/* Offsets to the address/parameter HSRs */
+#define P0_OFFSET       0X0
+#define P1_OFFSET       0X100
+#define ADDRESS_OFFSET  0x200
+
+/*
+ * These were the "old" offset values 
+ * 
+ * #define CAS_OFFSET		0xF0
+ * #define FA_OFFSET		0xE0
+ * #define SWAP_OFFSET		0xD0
+ * #define READ_OFFSET		0xC0
+ * #define P0_OFFSET		0X0
+ * #define P1_OFFSET		0X40
+ * #define ADDRESS_OFFSET	0x80
+ */
 
 extern uint64_t pa_to_lza(uint64_t pa);
 
