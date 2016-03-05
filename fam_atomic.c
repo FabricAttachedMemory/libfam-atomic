@@ -528,78 +528,6 @@ static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
 }
 
 /*
- * A simple read/write lock for internal use within library.
- * The read lock will be taken significantly more often than
- * the write lock, so we must ensure there is no writer starvation.
- * Writers get priority for getting the lock. We don't need to
- * worry about reader starvation in this library because we only
- * need to take the write lock when registering and unregistering
- * atomics, which are less common operations.
- */
-struct rw_lock {
-	/*
-	 * 0x1000000: free
-	 * 0: writer
-	 * positive value less than 0x100000: reader(s)
-	 */
-	int value;
-	int nr_write_waiters;
-} __attribute__((__aligned__(64)));
-
-#define UNLOCKED   0x1000000
-#define WRITE_BIAS 0x1000000
-#define READ_BIAS  0x1
-
-static inline void read_lock(struct rw_lock *lock)
-{
-	/* Fastpath */
-	if (xadd(&lock->value, -READ_BIAS) > 0 &&
-	    lock->nr_write_waiters == 0)
-		return;
-
-	/* Slowpath - contending for lock */
-	xadd(&lock->value, READ_BIAS);
-
-	for (;;) {
-		int value;
-
-		while (lock->nr_write_waiters > 0);
-
-		value = lock->value;
-		if (value > 0 &&
-		    cmpxchg(&lock->value, value, value - READ_BIAS) == value)
-			return;
-	}
-}
-
-static inline void read_unlock(struct rw_lock *lock)
-{
-	xadd(&lock->value, READ_BIAS);
-}
-
-static inline void write_lock(struct rw_lock *lock)
-{
-	/* Fastpath */
-	if (xadd(&lock->value, -WRITE_BIAS) == UNLOCKED)
-		return;
-
-	/* Slowpath - contending for lock */
-	xadd(&lock->value, WRITE_BIAS);
-	xadd(&lock->nr_write_waiters, 1);
-	for (;;) {
-		if (lock->value == UNLOCKED &&
-		    cmpxchg(&lock->value, UNLOCKED, 0) == UNLOCKED)
-			break;
-	}
-	xadd(&lock->nr_write_waiters, -1);
-}
-
-static inline void write_unlock(struct rw_lock *lock)
-{
-	xadd(&lock->value, WRITE_BIAS);
-}
-
-/*
  * Mutex for internal use for the library to protect write access
  * to the RCU rbtree. We take this lock when inserting and removing
  * nodes from the tree when registering and unregistering regions.
@@ -841,47 +769,6 @@ int rcu_rbtree_region_search(void *address, int *fd, off_t *region_offset,
 }
 
 /*
- * Each node represents a registered mmapped region.
- *
- * @region_start: Pointer to start of registered region
- * @region_length: Length of registered region.
- * @fd: File descriptor associated with the mmapped registered region.
- * @offset: Offset between start of file to region_start.
- * @use_zbridge_atomics: If true, use zbridge atomics,
- *			 else use simualted atomics.
- */
-struct node {
-	void *region_start;
-	size_t region_length;
-	int fd;
-	off_t region_offset;
-	bool use_zbridge_atomics;
-	struct node *next;
-};
-
-struct list {
-	struct node *head;
-};
-
-static void list_add(struct list *list, struct node *node)
-{
-	node->next = list->head;
-	list->head = node;
-}
-
-static void list_del(struct list *list, struct node *prev, struct node *node)
-{
-	if (!prev) {
-		assert(list->head == node);
-		list->head = node->next;
-	} else {
-		prev->next = node->next;
-	}
-
-	free(node);
-}
-
-/*
  * TODO: Alternatively, we could check if the file associated with 'fd'
  *       specified in the register function starts with '/lfs/'.
  *
@@ -901,17 +788,6 @@ static inline bool check_zbridge_atomics(int fd, int64_t offset)
 
 	return true;
 }
-
-/*
- * TODO: Convert this to a red-black binary search tree for O(log(n)) search.
- *
- * List of registered FAM atomic regions. This stores the information of the
- * mapping from atomic VA to (fd, region_offset) pair, which gets passed in
- * the ioctl() call to the kernel.
- */
-static struct list fam_atomic_region_list = { NULL };
-static struct rw_lock fam_atomic_list_lock = { UNLOCKED, 0 };
-
 
 int fam_atomic_register_region(void *region_start, size_t region_length,
 			       int fd, off_t offset)
@@ -969,129 +845,6 @@ static bool fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
 
 	if (use_zbridge_atomics)
 		ret = true;
-
-	/*
-	 * TODO: For now, we'll use the VA as the LFS file offset. On TMAS,
-	 * the ioctl for the atomics is in a separate driver, not part of
-	 * LFS, and requires the atomic VA. The simulated atomics also operate
-	 * directly on the VA.
-	 */
-	*offset = (int64_t)address;
-
-	return ret;
-}
-
-int __fam_atomic_register_region(void *region_start, size_t region_length,
-			       int fd, off_t offset)
-{
-	struct node *new_node = malloc(sizeof(struct node));
-
-	if (!new_node)
-		return -1;
-
-	new_node->region_start = region_start;
-	new_node->region_length = region_length;
-	new_node->fd = fd;
-	new_node->region_offset = offset;
-	new_node->use_zbridge_atomics = false;
-
-	/*
-	 * zbridge support is only available on ARM64, so avoid the
-	 * overhead of check if the zbridge atomics should be used
-	 * on x86 systems which only use the simulated atomics.
-	 */
-#ifdef __aarch64__
-	/*
-	 * TODO: This is temporary code. On TMAS, the ioctls are
-	 * implemented in a separate driver and not a part of LFS, so
-	 * we'll open the device file for the driver and use that fd. If
-	 * the driver is not installed and the fam_atomic device file is
-	 * not found, then we'll just use the simulated atomics. This
-	 * means that on TMAS with zbridge support, the user must make
-	 * sure that the fam atomic driver has been installed in order
-	 * for the library to use the zbridge atomics.
-	 */
-	new_node->fd = open("/dev/fam_atomic", O_RDWR);
-	if (new_node->fd != -1) {
-		debug("Warning: fam_atomic_register_region() found that this system\n");
-		debug("         does not have the fam atomic driver installed.\n");
-		debug("         The zbridge atomics would not get used\n");
-
-		/* TODO: Currently, the offset is just the VA. */
-		if (check_zbridge_atomics(new_node->fd, (int64_t)region_start))
-			new_node->use_zbridge_atomics = true;
-	}
-#endif
-
-	/* TODO: Detect overlapping regions? */
-	write_lock(&fam_atomic_list_lock);
-	list_add(&fam_atomic_region_list, new_node);
-	write_unlock(&fam_atomic_list_lock);
-
-	return 0;
-}
-
-void __fam_atomic_unregister_region(void *region_start, size_t region_length)
-{
-	struct node *curr, *prev;
-
-	prev = NULL;
-
-	write_lock(&fam_atomic_list_lock);
-
-	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
-		if (curr->region_start == region_start &&
-		    curr->region_length == region_length)
-			break;
-
-		prev = curr;
-	}
-
-	/* Error, no such region. */
-	if (!curr) {
-		write_unlock(&fam_atomic_list_lock);
-		return;
-	}
-
-	/* TODO: Temporary code for closing an opened TMAS device file. */
-	if (curr->use_zbridge_atomics)
-		close(curr->fd);
-
-	list_del(&fam_atomic_region_list, prev, curr);
-
-	write_unlock(&fam_atomic_list_lock);
-}
-
-/*
- * Given an address to an fam-atomic, find the associated fd and offset.
- * This is done by searching the list: fam_atomic_region_list. The NVM region
- * containing the fam-atomic must have been registered in order for this
- * function to succeed. If the region containing the atomic has not been
- * registered, then this function will generate a segmentation fault.
- */
-static bool __fam_atomic_get_fd_offset(void *address, int *fd, int64_t *offset)
-{
-	struct node *curr = NULL;
-	bool ret = false;
-
-	read_lock(&fam_atomic_list_lock);
-
-	for (curr = fam_atomic_region_list.head; curr != NULL; curr = curr->next) {
-		if (curr->region_start <= address &&
-		    curr->region_start + curr->region_length >= address)
-			break;
-	}
-
-	if (curr) {
-		*fd = curr->fd;
-		*offset = (int64_t)address - (int64_t)curr->region_start +
-			  (int64_t)curr->region_offset;
-
-		if (curr->use_zbridge_atomics)
-			ret = true;
-	}
-
-	read_unlock(&fam_atomic_list_lock);
 
 	/*
 	 * TODO: For now, we'll use the VA as the LFS file offset. On TMAS,
