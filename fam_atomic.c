@@ -519,12 +519,15 @@ static inline int simulated_ioctl(unsigned int opt, unsigned long args)
  *	 It is named __ioctl() instead of ioctl() to to avoid issues
  *	 with multiple declarations with this and the "real" ioctl().
  */
-static inline int __ioctl(int fd, unsigned int opt, unsigned long args)
+static inline void __ioctl(int fd, unsigned int opt, unsigned long args)
 {
-	/*
-	 * On TMAS, we'll make the "real" ioctl() system call.
-	 */
-	return ioctl(fd, opt, args);
+	if (ioctl(fd, opt, args)) {
+		printf("ERROR: fam_atomic operation failed due to an invalid address.\n");
+		printf("       Please verify LFS + librarian are running and that the\n");
+		printf("       fam atomic address parameter is from a valid mmap() on\n");
+		printf("       a LFS file\n\n");
+		raise(SIGSEGV);
+	}
 }
 
 /*
