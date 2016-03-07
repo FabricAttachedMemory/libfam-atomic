@@ -769,24 +769,34 @@ int rcu_rbtree_region_search(void *address, int *fd, off_t *region_offset,
 }
 
 /*
- * TODO: Alternatively, we could check if the file associated with 'fd'
- *       specified in the register function starts with '/lfs/'.
- *
- * Check if it is possible to invoke a zbridge atomic read on
- * the first 4 bytes specified by the (fd, offset) pair.
+ * Check if the file associated with 'fd' specified in the register
+ * function starts with '/lfs/'.
  */
-static inline bool check_zbridge_atomics(int fd, int64_t offset)
+static inline bool check_lfs_file(int fd)
 {
-	struct fam_atomic_args_32 args;
+	char proc_path[64];
+	char filepath[16];
 
-	args.offset = offset;
-	args.p32_0 = 0;
-	args.p32_1 = 0;
-
-	if (__ioctl(fd, FAM_ATOMIC_32_FETCH_AND_ADD, (unsigned long)&args))
+	if (fd < 0)
 		return false;
 
-	return true;
+	/*
+	 * Find path associated with fd. Return -1, if
+	 * unable to find filename.
+	 */
+	sprintf(proc_path, "/proc/self/fd/%d", fd);
+	if (readlink(proc_path, filepath, 16) == -1)
+		return false;
+
+	filepath[15] = '\0';
+
+	/*
+	 * Check if the filename begins with "/lfs".
+	 */
+	if (strncmp(filepath, "/lfs/", 5) == 0)
+		return true;
+
+	return false;
 }
 
 int fam_atomic_register_region(void *region_start, size_t region_length,
@@ -800,6 +810,8 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	 * on x86 systems which only use the simulated atomics.
 	 */
 #ifdef __aarch64__
+	int lfs_fd = fd;
+
 	/*
 	 * TODO: This is temporary code. On TMAS, the ioctls are
 	 * implemented in a separate driver and not a part of LFS, so
@@ -816,8 +828,11 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 		debug("         does not have the fam atomic driver installed.\n");
 		debug("         The zbridge atomics would not get used\n");
 
-		/* TODO: Currently, the offset is just the VA. */
-		if (check_zbridge_atomics(fd, (int64_t)region_start))
+		/*
+		 * If both the device file is present and we're registering
+		 * an LFS file, then we will use zbridge atomics.
+		 */
+		if (check_lfs_file(lfs_fd))
 			use_zbridge_atomics = true;
 	}
 #endif
