@@ -649,16 +649,7 @@ int rcu_rbtree_region_compare(void *ptr1, void *ptr2)
 		return 0;
 }
 
-void rcu_rbtree_region_free(void *ptr)
-{
-	struct rcu_rbtree_node *node = (struct rcu_rbtree_node *)ptr;
-
-	free(node->begin);
-	free(node->end);
-	free(ptr);
-}
-
-static DEFINE_RCU_RBTREE(rbtree, rcu_rbtree_region_compare, malloc, rcu_rbtree_region_free, call_rcu);
+static DEFINE_RCU_RBTREE(rbtree, rcu_rbtree_region_compare, malloc, free, call_rcu);
 static struct rcu_write_mutex rcu_rbtree_lock = { 1 };
 
 /*
