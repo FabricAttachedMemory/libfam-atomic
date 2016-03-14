@@ -100,7 +100,7 @@ struct data {
 	struct fam_atomic_64 compare_store_64;
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
-	struct fam_atomic_32 start;
+	int start;
 	int done;
 	int64_t total_iterations;
 };
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
-	fam_atomic_32_write(&data->start, 0);
+	__sync_lock_test_and_set(&data->start, 0);
 	__sync_lock_test_and_set(&data->done, 0);
 	data->total_iterations = 0;
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 		 * All processes have been created. Signal the other
 		 * processes to start test.
 		 */
-		fam_atomic_32_write(&data->start, 1);
+		__sync_lock_test_and_set(&data->start, 1);
 
 		clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
 
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 	 * created so that they all begin the test at the same time. The
 	 * "main" process will signal this by setting data->start.
 	 */
-	while (!fam_atomic_32_read(&data->start))
+	while (!__sync_fetch_and_add(&data->start, 0))
 		usleep(100 * 1000);
 
 	for (;;) {
