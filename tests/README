@@ -1,0 +1,10 @@
+How to run single node test:
+
+1. Install libfam-atomic1 and libfam-atomic1-dev packages.
+
+2. gcc -o fam_atomic_single_node_test fam_atomic_single_node_test.c -lfam_atomic
+
+3. Run ./fam_atomic_single_node_test
+
+4. Check that the test returned an exit code of 0. If so, the test was successful,
+   else the test returned with an error.
