@@ -876,6 +876,7 @@ int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p32_0 = increment;
 
@@ -899,6 +900,7 @@ int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p64_0 = increment;
 
@@ -922,6 +924,7 @@ int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p32_0 = value;
 
@@ -945,6 +948,7 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p64_0 = value;
 
@@ -969,6 +973,7 @@ void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t re
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p128_0[0] = value[0];
 	args.p128_0[1] = value[1];
@@ -994,6 +999,7 @@ int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p32_0 = compare;
 	args.p32_1 = store;
@@ -1020,6 +1026,7 @@ int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p64_0 = compare;
 	args.p64_1 = store;
@@ -1048,6 +1055,7 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 	args.p128_0[0] = compare[0];
 	args.p128_0[1] = compare[1];
@@ -1084,6 +1092,7 @@ extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 
 	use_zbridge_atomics = fam_atomic_get_fd_offset(address, &fd, &offset);
 
+	args.lfs_fd = fd;
 	args.offset = offset;
 
 	if (use_zbridge_atomics)
