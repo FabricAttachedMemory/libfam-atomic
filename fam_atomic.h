@@ -36,16 +36,19 @@ extern "C" {
 /* Fabric Attached Memory Atomic ioctl interface */
 
 struct fam_atomic_args_32 {
+        int lfs_fd;
         int64_t offset;
         int32_t p32_0, p32_1;
 };
 
 struct fam_atomic_args_64 {
+        int lfs_fd;
         int64_t offset;
         int64_t p64_0, p64_1;
 };
 
 struct fam_atomic_args_128 {
+	int lfs_fd;
         int64_t offset;
         int64_t p128_0[2], p128_1[2];
 };
