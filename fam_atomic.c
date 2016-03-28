@@ -822,18 +822,19 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	 * for the library to use the zbridge atomics.
 	 */
 	dev_fd = open("/dev/fam_atomic", O_RDONLY);
-	if (dev_fd != -1) {
-		debug("Warning: fam_atomic_register_region() found that this system\n");
-		debug("         does not have the fam atomic driver installed.\n");
-		debug("         The zbridge atomics would not get used\n");
-
-		/*
-		 * If both the device file is present and we're registering
-		 * an LFS file, then we will use zbridge atomics.
-		 */
-		if (check_lfs_file(lfs_fd))
-			use_zbridge_atomics = true;
+	if (dev_fd == -1) {
+		printf("ERROR: fam_atomic_register_region(): This system\n");
+		printf("       does not have the fam atomic driver installed.\n");
+		printf("       The zbridge atomics would not get used\n");
+		raise(SIGSEGV);
 	}
+
+	/*
+	 * If both the device file is present and we're registering
+	 * an LFS file, then we will use zbridge atomics.
+	 */
+	if (check_lfs_file(lfs_fd))
+		use_zbridge_atomics = true;
 #endif
 
 	rcu_rbtree_region_insert(region_start, region_length, dev_fd, lfs_fd,
