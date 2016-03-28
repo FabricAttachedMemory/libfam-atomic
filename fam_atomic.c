@@ -821,7 +821,7 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	 * sure that the fam atomic driver has been installed in order
 	 * for the library to use the zbridge atomics.
 	 */
-	dev_fd = open("/dev/fam_atomic", O_RDWR);
+	dev_fd = open("/dev/fam_atomic", O_RDONLY);
 	if (dev_fd != -1) {
 		debug("Warning: fam_atomic_register_region() found that this system\n");
 		debug("         does not have the fam atomic driver installed.\n");
