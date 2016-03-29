@@ -61,9 +61,9 @@ static inline cycles_t caa_get_cycles(void)
 
 #define CAA_CACHE_LINE_SIZE	256
 
-#define cmm_mb()	asm volatile("dmb":::"memory")
-#define cmm_rmb()	asm volatile("dmb":::"memory")
-#define cmm_wmb()	asm volatile("dmb":::"memory")
+#define cmm_mb()	asm volatile("dmb ish":::"memory")
+#define cmm_rmb()	asm volatile("dmb ishld":::"memory")
+#define cmm_wmb()	asm volatile("dmb ishst":::"memory")
 
 #include <stdlib.h>
 #include <sys/time.h>
