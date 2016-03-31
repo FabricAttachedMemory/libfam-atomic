@@ -1,4 +1,4 @@
-libfam-atomic (1.5) stable; urgency=low
+libfam-atomic (1.5+l4tm) stable; urgency=low
 
   * Fixes registration between threads and compiler errors when using C++.
 
