@@ -736,7 +736,8 @@ int rcu_rbtree_region_remove(void *region_start, size_t region_length)
 }
 
 int rcu_rbtree_region_search(void *address, int *dev_fd, int *lfs_fd,
-			     off_t *region_offset, bool *use_zbridge_atomics)
+			     int64_t *region_start, off_t *region_offset,
+			     bool *use_zbridge_atomics)
 {
 	int ret = -1;
 	struct region key;
@@ -757,6 +758,7 @@ int rcu_rbtree_region_search(void *address, int *dev_fd, int *lfs_fd,
 		ret = 0;
 		*dev_fd = region->dev_fd;
 		*lfs_fd = region->lfs_fd;
+		*region_start = (int64_t)region->region_start;
 		*region_offset = region->region_offset;
 		*use_zbridge_atomics = region->use_zbridge_atomics;
 	}
@@ -854,8 +856,9 @@ static bool fam_atomic_get_fd_offset(void *address, int *dev_fd, int *lfs_fd, in
 	struct node *curr = NULL;
 	bool ret = false;
 	bool use_zbridge_atomics;
+	int64_t region_start;
 
-	rcu_rbtree_region_search(address, dev_fd, lfs_fd, offset, &use_zbridge_atomics);
+	rcu_rbtree_region_search(address, dev_fd, lfs_fd, &region_start, offset, &use_zbridge_atomics);
 
 	if (use_zbridge_atomics)
 		ret = true;
@@ -866,7 +869,10 @@ static bool fam_atomic_get_fd_offset(void *address, int *dev_fd, int *lfs_fd, in
 	 * LFS, and requires the atomic VA. The simulated atomics also operate
 	 * directly on the VA.
 	 */
-	*offset = (int64_t)address;
+	if (use_zbridge_atomics)
+		*offset = (int64_t)address - region_start + *offset;
+	else
+		*offset = (int64_t)address;
 
 	return ret;
 }
