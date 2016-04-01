@@ -92,17 +92,10 @@ release_swap_64(struct fam_atomic_64 *atomic)
  * synchronizes access to those variables.
  */
 struct data {
-	int64_t w1;
-	int64_t w2;
-	int64_t w3;
-	int64_t w4;
 	struct fam_atomic_32 compare_store_32;
 	struct fam_atomic_64 compare_store_64;
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
-	int start;
-	int done;
-	int64_t total_iterations;
 };
 
 struct benchmark_data {
