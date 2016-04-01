@@ -96,7 +96,7 @@ struct data {
 	struct fam_atomic_64 compare_store_64;
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
-};
+} __attribute__((__aligned__(64)));
 
 struct benchmark_data {
 	int64_t w1;
@@ -305,4 +305,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
