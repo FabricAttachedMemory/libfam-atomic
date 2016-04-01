@@ -105,16 +105,28 @@ struct data {
 	int64_t total_iterations;
 };
 
+struct benchmark_data {
+	int64_t w1;
+	int64_t w2;
+	int64_t w3;
+	int64_t w4;
+	int start;
+	int done;
+	int64_t total_iterations;
+};
+
 int main(int argc, char **argv)
 {
 	char *file = "/lfs/fam_atomic_test.data";
 	struct data *data;
+	struct benchmark_data *benchmark_data;
 	int i;
 	int test_duration_sec = 20;
 	int nr_process = 10;
 	int pid;
+	int fd, fd_benchmark;
 
-	int fd = open(file, O_CREAT | O_RDWR, 0666);
+	fd = open(file, O_CREAT | O_RDWR, 0666);
 
 	if (fd < 0) {
 		fprintf(stderr, "ERROR: Unable to open LFS file\n");
@@ -134,17 +146,23 @@ int main(int argc, char **argv)
 		return 3;
 	}
 
-	data->w1 = 0;
-	data->w2 = 0;
-	data->w3 = 0;
-	data->w4 = 0;
+	fd_benchmark = open("fam_atomic_benchmark.data", O_CREAT | O_RDWR, 0666);
+	unlink("fam_atomic_benchmark.data");
+	ftruncate(fd_benchmark, sizeof(int64_t));
+	benchmark_data = mmap(0, sizeof(int64_t), PROT_READ | PROT_WRITE,
+						  MAP_SHARED, fd_benchmark, 0);
+
+	benchmark_data->w1 = 0;
+	benchmark_data->w2 = 0;
+	benchmark_data->w3 = 0;
+	benchmark_data->w4 = 0;
 	fam_atomic_32_write(&data->compare_store_32, 0);
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
-	__sync_lock_test_and_set(&data->start, 0);
-	__sync_lock_test_and_set(&data->done, 0);
-	data->total_iterations = 0;
+	__sync_lock_test_and_set(&benchmark_data->start, 0);
+	__sync_lock_test_and_set(&benchmark_data->done, 0);
+	benchmark_data->total_iterations = 0;
 
 	__sync_synchronize();
 
@@ -176,7 +194,7 @@ int main(int argc, char **argv)
 		 * All processes have been created. Signal the other
 		 * processes to start test.
 		 */
-		__sync_lock_test_and_set(&data->start, 1);
+		__sync_lock_test_and_set(&benchmark_data->start, 1);
 
 		clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
 
@@ -215,7 +233,7 @@ int main(int argc, char **argv)
 		/*
 		 * Notify all other processes that the benchmark is complete.
 		 */
-		__sync_lock_test_and_set(&data->done, 1);
+		__sync_lock_test_and_set(&benchmark_data->done, 1);
 
 		/*
 		 * Make sure all processes really finished.
@@ -228,10 +246,10 @@ int main(int argc, char **argv)
 		 * Verify all words in the region are 0 and print whether or not
 		 * the test completed successfully.
 		 */
-		if (data->w1 == (data->total_iterations) &&
-		    data->w2 == (data->total_iterations) &&
-		    data->w3 == (data->total_iterations) &&
-		    data->w4 == (data->total_iterations)) {
+		if (benchmark_data->w1 == (benchmark_data->total_iterations) &&
+		    benchmark_data->w2 == (benchmark_data->total_iterations) &&
+		    benchmark_data->w3 == (benchmark_data->total_iterations) &&
+		    benchmark_data->w4 == (benchmark_data->total_iterations)) {
 			printf("\n\nTest completed successfully!\n\n");
 			return 0;
 		} else {
@@ -246,12 +264,12 @@ int main(int argc, char **argv)
 	 * created so that they all begin the test at the same time. The
 	 * "main" process will signal this by setting data->start.
 	 */
-	while (!__sync_fetch_and_add(&data->start, 0))
+	while (!__sync_fetch_and_add(&benchmark_data->start, 0))
 		usleep(100 * 1000);
 
 	for (;;) {
 		/* Use fetch_and_add 0 as atomic read. */
-		if (__sync_fetch_and_add(&data->done, 0) == 1)
+		if (__sync_fetch_and_add(&benchmark_data->done, 0) == 1)
 			break;
 
 		/*
@@ -259,34 +277,34 @@ int main(int argc, char **argv)
 		 * of the progress of the test and isn't really part of
 		 * the test itself, so just use the regular fetch_and_add().
 		*/
-		__sync_fetch_and_add(&data->total_iterations, 1);
+		__sync_fetch_and_add(&benchmark_data->total_iterations, 1);
 
 		/*
 		 * compare and store 32.
 		 */
 		acquire_compare_and_store_32(&data->compare_store_32);
-		data->w1 += 1;
+		benchmark_data->w1 += 1;
 		release_compare_and_store_32(&data->compare_store_32);
 
 		/*
 		 * compare and store 64.
 		 */
 		acquire_compare_and_store_64(&data->compare_store_64);
-		data->w2 += 1;
+		benchmark_data->w2 += 1;
 		release_compare_and_store_64(&data->compare_store_64);
 
 		/*
 		 * swap 32.
 		 */
 		acquire_swap_32(&data->swap_32);
-		data->w3 += 1;
+		benchmark_data->w3 += 1;
 		release_swap_32(&data->swap_32);
 
 		/*
 		 * swap 64.
 		 */
 		acquire_swap_64(&data->swap_64);
-		data->w4 += 1;
+		benchmark_data->w4 += 1;
 		release_swap_64(&data->swap_64);
 	}
 
