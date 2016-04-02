@@ -108,16 +108,76 @@ struct benchmark_data {
 	int64_t total_iterations;
 };
 
+static struct data *data;
+static struct benchmark_data benchmark_data;
+
+void *run(void *args)
+{
+	/*
+	 * All created processes, excluding the main process will enter
+	 * this code path. Here, we wait until all processes have been
+	 * created so that they all begin the test at the same time. The
+	 * "main" process will signal this by setting data->start.
+	 */
+	while (!__sync_fetch_and_add(&benchmark_data.start, 0))
+		usleep(100 * 1000);
+
+	for (;;) {
+		/* Use fetch_and_add 0 as atomic read. */
+		if (__sync_fetch_and_add(&benchmark_data.done, 0) == 1)
+			break;
+
+		/*
+		 * The total_iterations variable just keeps track
+		 * of the progress of the test and isn't really part of
+		 * the test itself, so just use the regular fetch_and_add().
+		*/
+		__sync_fetch_and_add(&benchmark_data.total_iterations, 1);
+
+		/*
+		 * compare and store 32.
+		 */
+		acquire_compare_and_store_32(&data->compare_store_32);
+		benchmark_data.w1 += 1;
+		release_compare_and_store_32(&data->compare_store_32);
+
+		/*
+		 * compare and store 64.
+		 */
+		acquire_compare_and_store_64(&data->compare_store_64);
+		benchmark_data.w2 += 1;
+		release_compare_and_store_64(&data->compare_store_64);
+
+		/*
+		 * swap 32.
+		 */
+		acquire_swap_32(&data->swap_32);
+		benchmark_data.w3 += 1;
+		release_swap_32(&data->swap_32);
+
+		/*
+		 * swap 64.
+		 */
+		acquire_swap_64(&data->swap_64);
+		benchmark_data.w4 += 1;
+		release_swap_64(&data->swap_64);
+	}
+
+	return NULL;
+}
+
 int main(int argc, char **argv)
 {
 	char *file = "/lfs/fam_atomic_test.data";
-	struct data *data;
-	struct benchmark_data *benchmark_data;
 	int i;
 	int test_duration_sec = 20;
-	int nr_process = 10;
+	int nr_threads = 10;
 	int pid;
 	int fd, fd_benchmark;
+	pthread_t t[nr_threads];
+	struct timespec start, now;
+	int curr_duration_sec;
+	int line_length = 52;
 
 	fd = open(file, O_CREAT | O_RDWR, 0666);
 
@@ -139,166 +199,90 @@ int main(int argc, char **argv)
 		return 3;
 	}
 
-	fd_benchmark = open("fam_atomic_benchmark.data", O_CREAT | O_RDWR, 0666);
-	unlink("fam_atomic_benchmark.data");
-	ftruncate(fd_benchmark, sizeof(int64_t));
-	benchmark_data = mmap(0, sizeof(int64_t), PROT_READ | PROT_WRITE,
-						  MAP_SHARED, fd_benchmark, 0);
-
-	benchmark_data->w1 = 0;
-	benchmark_data->w2 = 0;
-	benchmark_data->w3 = 0;
-	benchmark_data->w4 = 0;
 	fam_atomic_32_write(&data->compare_store_32, 0);
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
-	__sync_lock_test_and_set(&benchmark_data->start, 0);
-	__sync_lock_test_and_set(&benchmark_data->done, 0);
-	benchmark_data->total_iterations = 0;
+
+	benchmark_data.w1 = 0;
+	benchmark_data.w2 = 0;
+	benchmark_data.w3 = 0;
+	benchmark_data.w4 = 0;
+	__sync_lock_test_and_set(&benchmark_data.start, 0);
+	__sync_lock_test_and_set(&benchmark_data.done, 0);
+	benchmark_data.total_iterations = 0;
 
 	__sync_synchronize();
 
 	printf("\nRunning single node fam atomic test:\n\n");
 
 	/*
-	 * Create nr_process to run the tests.
+	 * Create nr_threads to run the tests.
 	 */
-	for (i = 0; i < nr_process; i++) {
-		pid = fork();
-		if (pid == 0) {
-			break;
-		}
-	}
+	for (i = 0; i < nr_threads; i++)
+		pthread_create(&t[i], NULL, run, NULL);
 
 	/*
-	 * The main process will wait until the rest of the processes
-	 * finish running the actual test. It will print the current
-	 * status of the run, and report whether or not the test was
-	 * successful when the test completes.
+	 * All threads have been created. Signal the other
+	 * threads to start test.
 	 */
-	if (pid != 0) {
-		struct timespec start, now;
-		int curr_duration_sec;
-		int i;
-		int line_length = 52;
+	__sync_lock_test_and_set(&benchmark_data.start, 1);
 
-		/*
-		 * All processes have been created. Signal the other
-		 * processes to start test.
-		 */
-		__sync_lock_test_and_set(&benchmark_data->start, 1);
-
-		clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
-
-		for (;;) {
-			double percent_done;
-			int duration_curr_sec;
-
-			clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
-			curr_duration_sec = now.tv_sec - start.tv_sec;
-			if (curr_duration_sec > test_duration_sec)
-				break;
-
-			sleep(1);
-
-			percent_done = (double)curr_duration_sec / test_duration_sec * line_length;
-			printf("   [");
-
-			for (i = 1; i <= line_length; i++) {
-				if (percent_done < 2)
-					percent_done = 2;
-
-				if (i == 1)
-					printf("<");
-				else if (i == (int)percent_done)
-					printf(">");
-				else if (i < (int)percent_done)
-					printf("=");
-				else
-					printf(" ");
-			}
-	
-			printf("] %.2f%%\r", (double)curr_duration_sec / test_duration_sec * 100);
-			fflush(stdout);
-		}
-
-		/*
-		 * Notify all other processes that the benchmark is complete.
-		 */
-		__sync_lock_test_and_set(&benchmark_data->done, 1);
-
-		/*
-		 * Make sure all processes really finished.
-		 */
-		while (wait(NULL) >= 0);
-
-		__sync_synchronize();
-
-		/*
-		 * Verify all words in the region are 0 and print whether or not
-		 * the test completed successfully.
-		 */
-		if (benchmark_data->w1 == (benchmark_data->total_iterations) &&
-		    benchmark_data->w2 == (benchmark_data->total_iterations) &&
-		    benchmark_data->w3 == (benchmark_data->total_iterations) &&
-		    benchmark_data->w4 == (benchmark_data->total_iterations)) {
-			printf("\n\nTest completed successfully!\n\n");
-			return 0;
-		} else {
-			printf("\n\nERROR: Test failed\n\n");
-			return -1;
-		}
-	}
-
-	/*
-	 * All created processes, excluding the main process will enter
-	 * this code path. Here, we wait until all processes have been
-	 * created so that they all begin the test at the same time. The
-	 * "main" process will signal this by setting data->start.
-	 */
-	while (!__sync_fetch_and_add(&benchmark_data->start, 0))
-		usleep(100 * 1000);
+	clock_gettime(CLOCK_MONOTONIC_COARSE, &start);
 
 	for (;;) {
-		/* Use fetch_and_add 0 as atomic read. */
-		if (__sync_fetch_and_add(&benchmark_data->done, 0) == 1)
+		double percent_done;
+		int duration_curr_sec;
+
+		clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
+		curr_duration_sec = now.tv_sec - start.tv_sec;
+		if (curr_duration_sec > test_duration_sec)
 			break;
 
-		/*
-		 * The total_iterations variable just keeps track
-		 * of the progress of the test and isn't really part of
-		 * the test itself, so just use the regular fetch_and_add().
-		*/
-		__sync_fetch_and_add(&benchmark_data->total_iterations, 1);
+		sleep(1);
 
-		/*
-		 * compare and store 32.
-		 */
-		acquire_compare_and_store_32(&data->compare_store_32);
-		benchmark_data->w1 += 1;
-		release_compare_and_store_32(&data->compare_store_32);
+		percent_done = (double)curr_duration_sec / test_duration_sec * line_length;
+		printf("   [");
 
-		/*
-		 * compare and store 64.
-		 */
-		acquire_compare_and_store_64(&data->compare_store_64);
-		benchmark_data->w2 += 1;
-		release_compare_and_store_64(&data->compare_store_64);
+		for (i = 1; i <= line_length; i++) {
+			if (percent_done < 2)
+				percent_done = 2;
 
-		/*
-		 * swap 32.
-		 */
-		acquire_swap_32(&data->swap_32);
-		benchmark_data->w3 += 1;
-		release_swap_32(&data->swap_32);
+			if (i == 1)
+				printf("<");
+			else if (i == (int)percent_done)
+				printf(">");
+			else if (i < (int)percent_done)
+				printf("=");
+			else
+				printf(" ");
+		}
 
-		/*
-		 * swap 64.
-		 */
-		acquire_swap_64(&data->swap_64);
-		benchmark_data->w4 += 1;
-		release_swap_64(&data->swap_64);
+		printf("] %.2f%%\r", (double)curr_duration_sec / test_duration_sec * 100);
+		fflush(stdout);
+	}
+
+	/*
+	 * Notify all other processes that the benchmark is complete.
+	 */
+	__sync_lock_test_and_set(&benchmark_data.done, 1);
+
+	for (i = 0; i < nr_threads; i++)
+		pthread_join(t[i], NULL);
+
+	/*
+	 * Verify all words in the region are 0 and print whether or not
+	 * the test completed successfully.
+	 */
+	if (benchmark_data.w1 == (benchmark_data.total_iterations) &&
+	    benchmark_data.w2 == (benchmark_data.total_iterations) &&
+	    benchmark_data.w3 == (benchmark_data.total_iterations) &&
+	    benchmark_data.w4 == (benchmark_data.total_iterations)) {
+		printf("\n\nTest completed successfully!\n\n");
+		return 0;
+	} else {
+		printf("\n\nERROR: Test failed\n\n");
+		return -1;
 	}
 
 	fam_atomic_unregister_region(data, sizeof(struct data));
