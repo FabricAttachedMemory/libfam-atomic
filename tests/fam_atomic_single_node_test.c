@@ -96,6 +96,8 @@ struct data {
 	struct fam_atomic_64 compare_store_64;
 	struct fam_atomic_32 swap_32;
 	struct fam_atomic_64 swap_64;
+	struct fam_atomic_32 fa_32;
+	struct fam_atomic_64 fa_64;
 } __attribute__((__aligned__(64)));
 
 struct benchmark_data {
@@ -161,6 +163,9 @@ void *run(void *args)
 		acquire_swap_64(&data->swap_64);
 		benchmark_data.w4 += 1;
 		release_swap_64(&data->swap_64);
+
+		fam_atomic_32_fetch_and_add(&data->fa_32, 1);
+		fam_atomic_64_fetch_and_add(&data->fa_64, 1);
 	}
 
 	return NULL;
@@ -177,7 +182,6 @@ int main(int argc, char **argv)
 	pthread_t t[nr_threads];
 	struct timespec start, now;
 	int curr_duration_sec;
-	int line_length = 52;
 
 	fd = open(file, O_CREAT | O_RDWR, 0666);
 
@@ -203,6 +207,8 @@ int main(int argc, char **argv)
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
 	fam_atomic_64_write(&data->swap_64, 0);
+	fam_atomic_32_write(&data->fa_32, 0);
+	fam_atomic_64_write(&data->fa_64, 0);
 
 	benchmark_data.w1 = 0;
 	benchmark_data.w2 = 0;
@@ -233,6 +239,7 @@ int main(int argc, char **argv)
 	for (;;) {
 		double percent_done;
 		int duration_curr_sec;
+		int line_length = 52;
 
 		clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
 		curr_duration_sec = now.tv_sec - start.tv_sec;
@@ -270,14 +277,18 @@ int main(int argc, char **argv)
 	for (i = 0; i < nr_threads; i++)
 		pthread_join(t[i], NULL);
 
+	__sync_synchronize();
+
 	/*
 	 * Verify all words in the region are 0 and print whether or not
 	 * the test completed successfully.
 	 */
-	if (benchmark_data.w1 == (benchmark_data.total_iterations) &&
-	    benchmark_data.w2 == (benchmark_data.total_iterations) &&
-	    benchmark_data.w3 == (benchmark_data.total_iterations) &&
-	    benchmark_data.w4 == (benchmark_data.total_iterations)) {
+	if (benchmark_data.w1 == benchmark_data.total_iterations &&
+	    benchmark_data.w2 == benchmark_data.total_iterations &&
+	    benchmark_data.w3 == benchmark_data.total_iterations &&
+	    benchmark_data.w4 == benchmark_data.total_iterations &&
+	    fam_atomic_32_read(&data->fa_32) == benchmark_data.total_iterations &&
+	    fam_atomic_64_read(&data->fa_64) == benchmark_data.total_iterations) {
 		printf("\n\nTest completed successfully!\n\n");
 		return 0;
 	} else {
