@@ -877,7 +877,7 @@ static bool fam_atomic_get_fd_offset(void *address, int *dev_fd, int *lfs_fd, in
 	return ret;
 }
 
-int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment)
+int32_t fam_atomic_32_fetch_add(int32_t *address, int32_t increment)
 {
 	int32_t prev;
 	int dev_fd, lfs_fd;
@@ -901,7 +901,7 @@ int32_t fam_atomic_32_fetch_and_add_unpadded(int32_t *address, int32_t increment
 	return prev;
 }
 
-int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment)
+int64_t fam_atomic_64_fetch_add(int64_t *address, int64_t increment)
 {
 	int64_t prev;
 	int dev_fd, lfs_fd;
@@ -925,7 +925,7 @@ int64_t fam_atomic_64_fetch_and_add_unpadded(int64_t *address, int64_t increment
 	return prev;
 }
 
-int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
+int32_t fam_atomic_32_swap(int32_t *address, int32_t value)
 {
 	int32_t prev;
 	int dev_fd, lfs_fd;
@@ -949,7 +949,7 @@ int32_t fam_atomic_32_swap_unpadded(int32_t *address, int32_t value)
 	return prev;
 }
 
-int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
+int64_t fam_atomic_64_swap(int64_t *address, int64_t value)
 {
 	int64_t prev;
 	int dev_fd, lfs_fd;
@@ -973,7 +973,7 @@ int64_t fam_atomic_64_swap_unpadded(int64_t *address, int64_t value)
 	return prev;
 }
 
-void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t result[2])
+void fam_atomic_128_swap(int64_t *address, int64_t value[2], int64_t result[2])
 {
 	int64_t old[2];
 	int dev_fd, lfs_fd;
@@ -998,7 +998,7 @@ void fam_atomic_128_swap_unpadded(int64_t *address, int64_t value[2], int64_t re
 	result[1] = args.p128_0[1];
 }
 
-int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
+int32_t fam_atomic_32_compare_store(int32_t *address,
 						 int32_t compare,
 						 int32_t store)
 {
@@ -1025,7 +1025,7 @@ int32_t fam_atomic_32_compare_and_store_unpadded(int32_t *address,
 	return prev;
 }
 
-int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
+int64_t fam_atomic_64_compare_store(int64_t *address,
 					  	 int64_t compare,
 						 int64_t store)
 {
@@ -1052,7 +1052,7 @@ int64_t fam_atomic_64_compare_and_store_unpadded(int64_t *address,
 	return prev;
 }
 
-void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
+void fam_atomic_128_compare_store(int64_t *address,
 					       int64_t compare[2],
 					       int64_t store[2],
 					       int64_t result[2])
@@ -1082,17 +1082,17 @@ void fam_atomic_128_compare_and_store_unpadded(int64_t *address,
 	result[1] = args.p128_0[1];
 }
 
-int32_t fam_atomic_32_read_unpadded(int32_t *address)
+int32_t fam_atomic_32_read(int32_t *address)
 {
-	return fam_atomic_32_fetch_and_add_unpadded(address, 0);
+	return fam_atomic_32_fetch_add(address, 0);
 }
 
-int64_t fam_atomic_64_read_unpadded(int64_t *address)
+int64_t fam_atomic_64_read(int64_t *address)
 {
-	return fam_atomic_64_fetch_and_add_unpadded(address, 0);
+	return fam_atomic_64_fetch_add(address, 0);
 }
 
-extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
+extern void fam_atomic_128_read(int64_t *address, int64_t result[2])
 {
 	int64_t old[2];
 	int dev_fd, lfs_fd;
@@ -1116,19 +1116,19 @@ extern void fam_atomic_128_read_unpadded(int64_t *address, int64_t result[2])
 	result[1] = args.p128_0[1];
 }
 
-void fam_atomic_32_write_unpadded(int32_t *address, int32_t value)
+void fam_atomic_32_write(int32_t *address, int32_t value)
 {
 	/* This is a write operation, so no need to return prev value. */
-	(void) fam_atomic_32_swap_unpadded(address, value);
+	(void) fam_atomic_32_swap(address, value);
 }
 
-void fam_atomic_64_write_unpadded(int64_t *address, int64_t value)
+void fam_atomic_64_write(int64_t *address, int64_t value)
 {
 	/* This is a write operation, so no need to return prev value. */
-	(void) fam_atomic_64_swap_unpadded(address, value);
+	(void) fam_atomic_64_swap(address, value);
 }
 
-void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
+void fam_atomic_128_write(int64_t *address, int64_t value[2])
 {
 	/*
 	 * Only a write operation, so we won't need to use the 'result',
@@ -1136,7 +1136,7 @@ void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
 	 */
 	int64_t result[2];
 
-	fam_atomic_128_swap_unpadded(address, value, result);
+	fam_atomic_128_swap(address, value, result);
 }
 
 /*
@@ -1145,7 +1145,7 @@ void fam_atomic_128_write_unpadded(int64_t *address, int64_t value[2])
  * such as maintaining a cache of values stored to recently used atomics.
  * This can improve the accuracy of the guess.
  */
-int32_t fam_atomic_32_fetch_and_unpadded(int32_t *address, int32_t arg)
+int32_t fam_atomic_32_fetch_and(int32_t *address, int32_t arg)
 {
 	/*
 	 * Reading the fam atomic value requires an additional system call.
@@ -1156,7 +1156,7 @@ int32_t fam_atomic_32_fetch_and_unpadded(int32_t *address, int32_t arg)
 	int32_t prev = 0;
 
 	for (;;) {
-		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev & arg);
+		int32_t actual = fam_atomic_32_compare_store(address, prev, prev & arg);
 
 		if (actual == prev)
 			return prev;
@@ -1165,12 +1165,12 @@ int32_t fam_atomic_32_fetch_and_unpadded(int32_t *address, int32_t arg)
 	}
 }
 
-int64_t fam_atomic_64_fetch_and_unpadded(int64_t *address, int64_t arg)
+int64_t fam_atomic_64_fetch_and(int64_t *address, int64_t arg)
 {
 	int64_t prev = 0;
 
 	for (;;) {
-		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev & arg);
+		int64_t actual = fam_atomic_64_compare_store(address, prev, prev & arg);
 
 		if (actual == prev)
 			return prev;
@@ -1179,12 +1179,12 @@ int64_t fam_atomic_64_fetch_and_unpadded(int64_t *address, int64_t arg)
 	}
 }
 
-int32_t fam_atomic_32_fetch_or_unpadded(int32_t *address, int32_t arg)
+int32_t fam_atomic_32_fetch_or(int32_t *address, int32_t arg)
 {
 	int32_t prev = 0;
 
 	for (;;) {
-		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev | arg);
+		int32_t actual = fam_atomic_32_compare_store(address, prev, prev | arg);
 
 		if (actual == prev)
 			return prev;
@@ -1193,12 +1193,12 @@ int32_t fam_atomic_32_fetch_or_unpadded(int32_t *address, int32_t arg)
 	}
 }
 
-int64_t fam_atomic_64_fetch_or_unpadded(int64_t *address, int64_t arg)
+int64_t fam_atomic_64_fetch_or(int64_t *address, int64_t arg)
 {
 	int64_t prev = 0;
 
 	for (;;) {
-		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev | arg);
+		int64_t actual = fam_atomic_64_compare_store(address, prev, prev | arg);
 
 		if (actual == prev)
 			return prev;
@@ -1207,12 +1207,12 @@ int64_t fam_atomic_64_fetch_or_unpadded(int64_t *address, int64_t arg)
 	}
 }
 
-int32_t fam_atomic_32_fetch_xor_unpadded(int32_t *address, int32_t arg)
+int32_t fam_atomic_32_fetch_xor(int32_t *address, int32_t arg)
 {
 	int32_t prev = 0;
 
 	for (;;) {
-		int32_t actual = fam_atomic_32_compare_and_store_unpadded(address, prev, prev ^ arg);
+		int32_t actual = fam_atomic_32_compare_store(address, prev, prev ^ arg);
 
 		if (actual == prev)
 			return prev;
@@ -1221,12 +1221,12 @@ int32_t fam_atomic_32_fetch_xor_unpadded(int32_t *address, int32_t arg)
 	}
 }
 
-int64_t fam_atomic_64_fetch_xor_unpadded(int64_t *address, int64_t arg)
+int64_t fam_atomic_64_fetch_xor(int64_t *address, int64_t arg)
 {
 	int64_t prev = 0;
 
 	for (;;) {
-		int64_t actual = fam_atomic_64_compare_and_store_unpadded(address, prev, prev ^ arg);
+		int64_t actual = fam_atomic_64_compare_store(address, prev, prev ^ arg);
 
 		if (actual == prev)
 			return prev;
@@ -1235,9 +1235,9 @@ int64_t fam_atomic_64_fetch_xor_unpadded(int64_t *address, int64_t arg)
 	}
 }
 
-void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
+void fam_spin_lock(struct fam_spinlock *lock)
 {
-        struct fam_spinlock_unpadded inc = {
+        struct fam_spinlock inc = {
                 .tickets = {
                         .head = 0,
                         .tail = 1
@@ -1245,11 +1245,11 @@ void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
         };
 
         /* Fetch the current values and bump the tail by one */
-        inc.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, inc.head_tail);
+        inc.head_tail = fam_atomic_64_fetch_add(&lock->head_tail, inc.head_tail);
 
         if (inc.tickets.head != inc.tickets.tail) {
                 for (;;) {
-                        inc.tickets.head = fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 0);
+                        inc.tickets.head = fam_atomic_32_fetch_add(&lock->tickets.head, 0);
                         if (inc.tickets.head == inc.tickets.tail)
                                 break;
                 }
@@ -1257,24 +1257,24 @@ void fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock)
         __sync_synchronize();
 }
 
-bool fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock)
+bool fam_spin_trylock(struct fam_spinlock *lock)
 {
-        struct fam_spinlock_unpadded old, new;
+        struct fam_spinlock old, new;
         bool ret;
 
-        old.head_tail = fam_atomic_64_fetch_and_add_unpadded(&lock->head_tail, (int64_t) 0);
+        old.head_tail = fam_atomic_64_fetch_add(&lock->head_tail, (int64_t) 0);
         if (old.tickets.head != old.tickets.tail)
                 return 0;
 
         new.tickets.head = old.tickets.head;
         new.tickets.tail = old.tickets.tail + 1;
-        ret = fam_atomic_64_compare_and_store_unpadded(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
+        ret = fam_atomic_64_compare_store(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
         __sync_synchronize();
         return ret;
 }
 
-void fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock)
+void fam_spin_unlock(struct fam_spinlock *lock)
 {
-        (void) fam_atomic_32_fetch_and_add_unpadded(&lock->tickets.head, 1);
+        (void) fam_atomic_32_fetch_add(&lock->tickets.head, 1);
         __sync_synchronize();
 }

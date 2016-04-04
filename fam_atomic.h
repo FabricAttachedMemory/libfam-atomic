@@ -108,114 +108,13 @@ fam_atomic_unregister_region(void *region_start,
 			     size_t region_length);
 
 /*
- * Fabric Attached Memory Atomic un-aligned API.
+ * Fabric Attached Memory Atomic API.
  *
- * The following are the unpadded variant of the fam atomics. Users of
- * these unpadded atomics must manually keep the fam atomic variables in
+ * Users of fam atomics must manually keep the fam atomic variables in
  * their own cachelines so that they do not share cachelines with regular
  * data. This is required to ensure the correctness of the atomic data.
  */
-int32_t
-fam_atomic_32_fetch_and_add_unpadded(int32_t *address,
-				     int32_t increment);
 
-int64_t
-fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
-				     int64_t increment);
-
-int32_t
-fam_atomic_32_swap_unpadded(int32_t *address,
-			    int32_t value);
-
-int64_t
-fam_atomic_64_swap_unpadded(int64_t *address,
-			    int64_t value);
-
-void
-fam_atomic_128_swap_unpadded(int64_t *address,
-			     int64_t value[2],
-			     int64_t result[2]);
-
-int32_t
-fam_atomic_32_compare_and_store_unpadded(int32_t *address,
-					 int32_t compare,
-					 int32_t store);
-
-int64_t
-fam_atomic_64_compare_and_store_unpadded(int64_t *address,
-					 int64_t compare,
-					 int64_t store);
-
-void
-fam_atomic_128_compare_and_store_unpadded(int64_t *address,
-					  int64_t compare[2],
-					  int64_t store[2],
-					  int64_t result[2]);
-
-int32_t
-fam_atomic_32_read_unpadded(int32_t *address);
-
-int64_t
-fam_atomic_64_read_unpadded(int64_t *address);
-
-void
-fam_atomic_128_read_unpadded(int64_t *address,
-			     int64_t result[2]);
-
-void
-fam_atomic_32_write_unpadded(int32_t *address,
-			     int32_t value);
-
-void
-fam_atomic_64_write_unpadded(int64_t *address,
-			     int64_t value);
-
-void
-fam_atomic_128_write_unpadded(int64_t *address,
-			      int64_t value[2]);
-
-int32_t
-fam_atomic_32_fetch_and_unpadded(int32_t *address,
-				 int32_t arg);
-
-int64_t
-fam_atomic_64_fetch_and_unpadded(int64_t *address,
-				 int64_t arg);
-
-int32_t
-fam_atomic_32_fetch_or_unpadded(int32_t *address,
-				int32_t arg);
-
-int64_t
-fam_atomic_64_fetch_or_unpadded(int64_t *address,
-				int64_t arg);
-
-int32_t
-fam_atomic_32_fetch_xor_unpadded(int32_t *address,
-				 int32_t arg);
-
-int64_t
-fam_atomic_64_fetch_xor_unpadded(int64_t *address,
-				 int64_t arg);
-
-/*
- * fam atomic data types
- * ----------------------
- * struct fam_atomic_32 - 32 bit fam atomic type
- * struct fam_atomic_64 - 64 bit fam atomic type
- * struct fam_atomic_128 - 128 bit fam atomic type
- */
-struct fam_atomic_32 {
-	int32_t __v__ __attribute__((__aligned__(64)));
-};
-
-struct fam_atomic_64 {
-	int64_t __v__ __attribute__((__aligned__(64)));
-};
-
-struct fam_atomic_128 {
-	int64_t __v__[2] __attribute__((__aligned__(64)));
-};
 
 /*
  * Atomically adds "increment" to the atomic variable and returns the
@@ -224,21 +123,13 @@ struct fam_atomic_128 {
  * @address: Pointer to an fam atomic variable.
  * @increment: The value which will be added to the atomic.
  */
-static inline int32_t
-fam_atomic_32_fetch_and_add(struct fam_atomic_32 *address,
-			    int32_t increment)
-{
-	return fam_atomic_32_fetch_and_add_unpadded(&address->__v__,
-						    increment);
-}
+int32_t
+fam_atomic_32_fetch_add(int32_t *address,
+			int32_t increment);
 
-static inline int64_t
-fam_atomic_64_fetch_and_add(struct fam_atomic_64 *address,
-			    int64_t increment)
-{
-	return fam_atomic_64_fetch_and_add_unpadded(&address->__v__,
-						    increment);
-}
+int64_t
+fam_atomic_64_fetch_add(int64_t *address,
+			int64_t increment);
 
 /*
  * Atomically writes "value" to the atomic variable and returns
@@ -247,27 +138,18 @@ fam_atomic_64_fetch_and_add(struct fam_atomic_64 *address,
  * @address: Pointer to an fam atomic variable.
  * @value: The new value that will be written to the atomic.
  */
-static inline int32_t
-fam_atomic_32_swap(struct fam_atomic_32 *address,
-		   int32_t value)
-{
-	return fam_atomic_32_swap_unpadded(&address->__v__, value);
-}
+int32_t
+fam_atomic_32_swap(int32_t *address,
+		   int32_t value);
 
-static inline int64_t
-fam_atomic_64_swap(struct fam_atomic_64 *address,
-		   int64_t value)
-{
-	return fam_atomic_64_swap_unpadded(&address->__v__, value);
-}
+int64_t
+fam_atomic_64_swap(int64_t *address,
+		   int64_t value);
 
-static inline void
-fam_atomic_128_swap(struct fam_atomic_128 *address,
+void
+fam_atomic_128_swap(int64_t *address,
 		    int64_t value[2],
-		    int64_t result[2])
-{
-	fam_atomic_128_swap_unpadded(address->__v__, value, result);
-}
+		    int64_t result[2]);
 
 /*
  * Atomically checks if the atomic variable is equal to "compare"
@@ -278,57 +160,36 @@ fam_atomic_128_swap(struct fam_atomic_128 *address,
  * @compare The value which the atomic is expected to equal.
  * @store: The value the atomic will be set to if equal to "compare".
  */
-static inline int32_t
-fam_atomic_32_compare_and_store(struct fam_atomic_32 *address,
-				int32_t compare,
-				int32_t store)
-{
-	return fam_atomic_32_compare_and_store_unpadded(&address->__v__,
-							compare, store);
-}
+int32_t
+fam_atomic_32_compare_store(int32_t *address,
+			    int32_t compare,
+			    int32_t store);
 
-static inline int64_t
-fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
-				int64_t compare,
-				int64_t store)
-{
-	return fam_atomic_64_compare_and_store_unpadded(&address->__v__,
-							compare, store);
-}
+int64_t
+fam_atomic_64_compare_store(int64_t *address,
+			    int64_t compare,
+			    int64_t store);
 
-static inline void
-fam_atomic_128_compare_and_store(struct fam_atomic_128 *address,
-				 int64_t compare[2],
-				 int64_t store[2],
-				 int64_t result[2])
-{
-	fam_atomic_128_compare_and_store_unpadded(address->__v__, compare,
-						  store, result);
-}
+void
+fam_atomic_128_compare_store(int64_t *address,
+			     int64_t compare[2],
+			     int64_t store[2],
+			     int64_t result[2]);
 
 /*
  * Returns the value of the atomic variable.
  *
  * @address: Pointer to an fam atomic variable.
  */
-static inline int32_t
-fam_atomic_32_read(struct fam_atomic_32 *address)
-{
-	return fam_atomic_32_read_unpadded(&address->__v__);
-}
+int32_t
+fam_atomic_32_read(int32_t *address);
 
-static inline int64_t
-fam_atomic_64_read(struct fam_atomic_64 *address)
-{
-	return fam_atomic_64_read_unpadded(&address->__v__);
-}
+int64_t
+fam_atomic_64_read(int64_t *address);
 
-static inline void
-fam_atomic_128_read(struct fam_atomic_128 *address,
-		    int64_t result[2])
-{
-	fam_atomic_128_read_unpadded(address->__v__, result);
-}
+void
+fam_atomic_128_read(int64_t *address,
+		    int64_t result[2]);
 
 /*
  * Writes "value" to the atomic variable.
@@ -336,26 +197,17 @@ fam_atomic_128_read(struct fam_atomic_128 *address,
  * @address: Pointer to an fam atomic variable.
  * @value: The value that will be written to the atomic.
  */
-static inline void
-fam_atomic_32_write(struct fam_atomic_32 *address,
-		    int32_t value)
-{
-	fam_atomic_32_write_unpadded(&address->__v__, value);
-}
+void
+fam_atomic_32_write(int32_t *address,
+		    int32_t value);
 
-static inline void
-fam_atomic_64_write(struct fam_atomic_64 *address,
-		    int64_t value)
-{
-	fam_atomic_64_write_unpadded(&address->__v__, value);
-}
+void
+fam_atomic_64_write(int64_t *address,
+		    int64_t value);
 
-static inline void
-fam_atomic_128_write(struct fam_atomic_128 *address,
-		     int64_t value[2])
-{
-	fam_atomic_128_write_unpadded(address->__v__, value);
-}
+void
+fam_atomic_128_write(int64_t *address,
+		     int64_t value[2]);
 
 /*
  * Atomically performs bitwise AND between the fam atomic
@@ -364,19 +216,13 @@ fam_atomic_128_write(struct fam_atomic_128 *address,
  * @address: Pointer to an fam atomic variable.
  * @arg: The value that the atomic gets AND'd with.
  */
-static inline int32_t
-fam_atomic_32_fetch_and(struct fam_atomic_32 *address,
-			int32_t arg)
-{
-	return fam_atomic_32_fetch_and_unpadded(&address->__v__, arg);
-}
+int32_t
+fam_atomic_32_fetch_and(int32_t *address,
+			int32_t arg);
 
-static inline int64_t
-fam_atomic_64_fetch_and(struct fam_atomic_64 *address,
-			int64_t arg)
-{
-	return fam_atomic_64_fetch_and_unpadded(&address->__v__, arg);
-}
+int64_t
+fam_atomic_64_fetch_and(int64_t *address,
+			int64_t arg);
 
 /*
  * Atomically performs bitwise OR between the fam atomic
@@ -385,19 +231,13 @@ fam_atomic_64_fetch_and(struct fam_atomic_64 *address,
  * @address: Pointer to an fam atomic variable.
  * @arg: The value that the atomic gets OR'd with.
  */
-static inline int32_t
-fam_atomic_32_fetch_or(struct fam_atomic_32 *address,
-		       int32_t arg)
-{
-	return fam_atomic_32_fetch_or_unpadded(&address->__v__, arg);
-}
+int32_t
+fam_atomic_32_fetch_or(int32_t *address,
+		       int32_t arg);
 
-static inline int64_t
-fam_atomic_64_fetch_or(struct fam_atomic_64 *address,
-		       int64_t arg)
-{
-	return fam_atomic_64_fetch_or_unpadded(&address->__v__, arg);
-}
+int64_t
+fam_atomic_64_fetch_or(int64_t *address,
+		       int64_t arg);
 
 /*
  * Atomically performs bitwise XOR between the fam atomic
@@ -406,19 +246,13 @@ fam_atomic_64_fetch_or(struct fam_atomic_64 *address,
  * @address: Pointer to an fam atomic variable.
  * @arg: The value that the atomic gets XOR'd with.
  */
-static inline int32_t
-fam_atomic_32_fetch_xor(struct fam_atomic_32 *address,
-			int32_t arg)
-{
-	return fam_atomic_32_fetch_xor_unpadded(&address->__v__, arg);
-}
+int32_t
+fam_atomic_32_fetch_xor(int32_t *address,
+			int32_t arg);
 
-static inline int64_t
-fam_atomic_64_fetch_xor(struct fam_atomic_64 *address,
-			int64_t arg)
-{
-	return fam_atomic_64_fetch_xor_unpadded(&address->__v__, arg);
-}
+int64_t
+fam_atomic_64_fetch_xor(int64_t *address,
+			int64_t arg);
 
 /* Spinlocks */
 typedef int32_t	__fam_ticket_t;
@@ -445,47 +279,23 @@ struct __fam_tickets {
  * to it, the result won't overflow into the head value. This is a
  * cute trick cribbed from the Linux spinlock code.
  */
-struct fam_spinlock_unpadded {
+struct fam_spinlock {
 	union {
 		__fam_ticketpair_t      head_tail;
 		struct __fam_tickets	tickets;
 	};
 };
 
-#define FAM_SPINLOCK_UNPADDED_INITIALIZER ((struct fam_spinlock_unpadded) { 0 })
+#define FAM_SPINLOCK_INITIALIZER ((struct fam_spinlock) { 0 })
 
 extern void
-fam_spin_lock_unpadded(struct fam_spinlock_unpadded *lock);
+fam_spin_lock(struct fam_spinlock *lock);
 
 extern bool
-fam_spin_trylock_unpadded(struct fam_spinlock_unpadded *lock);
+fam_spin_trylock(struct fam_spinlock *lock);
 
 extern void
-fam_spin_unlock_unpadded(struct fam_spinlock_unpadded *lock);
-
-struct fam_spinlock {
-	struct fam_spinlock_unpadded __v__ __attribute((__aligned__(64)));
-};
-
-#define FAM_SPINLOCK_INITIALIZER ((struct fam_spinlock) { .__v__ = { 0 } })
-
-static inline void
-fam_spin_lock(struct fam_spinlock *lock)
-{
-	fam_spin_lock_unpadded(&lock->__v__);
-}
-
-static inline bool
-fam_spin_trylock(struct fam_spinlock *lock)
-{
-	return fam_spin_trylock_unpadded(&lock->__v__);
-}
-
-static inline void
-fam_spin_unlock(struct fam_spinlock *lock)
-{
-	fam_spin_unlock_unpadded(&lock->__v__);
-}
+fam_spin_unlock(struct fam_spinlock *lock);
 
 #ifdef __cplusplus
 }
