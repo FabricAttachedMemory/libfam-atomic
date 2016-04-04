@@ -799,6 +799,23 @@ static inline bool check_lfs_file(int fd)
 	return false;
 }
 
+static inline bool lfs_running(void)
+{
+        char *librarian_fs_str = "LibrarianFS /lfs";
+        FILE *in = fopen("/proc/self/mounts", "r");
+        char buffer[128];
+        bool found = false;
+
+        while (fgets(buffer, sizeof(buffer), in) != NULL) {
+                if (strncmp(buffer, librarian_fs_str, sizeof(librarian_fs_str)) == 0) {
+                        found = true;
+                        break;
+                }
+        }
+
+	return found;
+}
+
 int fam_atomic_register_region(void *region_start, size_t region_length,
 			       int fd, off_t offset)
 {
@@ -835,8 +852,23 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	 * If both the device file is present and we're registering
 	 * an LFS file, then we will use zbridge atomics.
 	 */
-	if (check_lfs_file(lfs_fd))
+	if (check_lfs_file(lfs_fd)) {
+		/*
+		 * TODO: This checks for if LFS is running when the user tries to use
+		 *       zbridge atomics. This is a temporary check in order to
+		 *       avoid a potential kernel panic. We can remove this when
+		 *       the tm-fuse lfs_obtain_lza_and_book_offset() function contains
+		 *       the check for if the file is really an LFS file.
+		 */
+		if (!lfs_running()) {
+			printf("ERROR: fam_atomic_register_region(): LFS is not running\n");
+			printf("       on this node. It must be running in order to use\n");
+			printf("       atomics on FAM\n");
+			raise(SIGSEGV);
+		}
+
 		use_zbridge_atomics = true;
+	}
 #endif
 
 	rcu_rbtree_region_insert(region_start, region_length, dev_fd, lfs_fd,
