@@ -1235,6 +1235,11 @@ int64_t fam_atomic_64_fetch_xor(int64_t *address, int64_t arg)
 	}
 }
 
+void fam_spin_lock_init(struct fam_spinlock *lock)
+{
+        fam_atomic_64_write(&lock->head_tail, 0);
+}
+
 void fam_spin_lock(struct fam_spinlock *lock)
 {
         struct fam_spinlock inc = {

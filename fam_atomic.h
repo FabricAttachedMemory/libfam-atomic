@@ -289,6 +289,9 @@ struct fam_spinlock {
 #define FAM_SPINLOCK_INITIALIZER ((struct fam_spinlock) { 0 })
 
 extern void
+fam_spin_lock_init(struct fam_spinlock *lock);
+
+extern void
 fam_spin_lock(struct fam_spinlock *lock);
 
 extern bool

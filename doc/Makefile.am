@@ -24,6 +24,7 @@ DOC_FILES= \
 	fam_atomic_64_write.txt \
 	fam_atomic_register_region.txt \
 	fam_atomic_unregister_region.txt \
+	fam_spin_lock_init.txt \
 	fam_spin_lock.txt \
 	fam_spin_trylock.txt \
 	fam_spin_unlock.txt
