@@ -27,37 +27,37 @@
 #include <time.h>
 
 static inline void
-acquire_compare_and_store_32(struct fam_atomic_32 *atomic)
+acquire_compare_and_store_32(int32_t *atomic)
 {
 	for (;;) {
-		if (fam_atomic_32_compare_and_store(atomic, 0, 1) == 0)
+		if (fam_atomic_32_compare_store(atomic, 0, 1) == 0)
 			break;
 	}
 }
 
 static inline void
-release_compare_and_store_32(struct fam_atomic_32 *atomic)
+release_compare_and_store_32(int32_t *atomic)
 {
 	fam_atomic_32_write(atomic, 0);
 }
 
 static inline void
-acquire_compare_and_store_64(struct fam_atomic_64 *atomic)
+acquire_compare_and_store_64(int64_t *atomic)
 {
 	for (;;) {
-		if (fam_atomic_64_compare_and_store(atomic, 0, 1) == 0)
+		if (fam_atomic_64_compare_store(atomic, 0, 1) == 0)
 			break;
 	}
 }
 
 static inline void
-release_compare_and_store_64(struct fam_atomic_64 *atomic)
+release_compare_and_store_64(int64_t *atomic)
 {
 	fam_atomic_64_write(atomic, 0);
 }
 
 static inline void
-acquire_swap_32(struct fam_atomic_32 *atomic)
+acquire_swap_32(int32_t *atomic)
 {
 	for (;;) {
 		if (!fam_atomic_32_swap(atomic, 1))
@@ -66,13 +66,13 @@ acquire_swap_32(struct fam_atomic_32 *atomic)
 }
 
 static inline void
-release_swap_32(struct fam_atomic_32 *atomic)
+release_swap_32(int32_t *atomic)
 {
 	fam_atomic_32_write(atomic, 0);
 }
 
 static inline void
-acquire_swap_64(struct fam_atomic_64 *atomic) 
+acquire_swap_64(int64_t *atomic) 
 {
 	for (;;) {
 		if (!fam_atomic_64_swap(atomic, 1))
@@ -81,7 +81,7 @@ acquire_swap_64(struct fam_atomic_64 *atomic)
 }
 
 static inline void
-release_swap_64(struct fam_atomic_64 *atomic)
+release_swap_64(int64_t *atomic)
 {
 	fam_atomic_64_write(atomic, 0);
 }
@@ -92,12 +92,12 @@ release_swap_64(struct fam_atomic_64 *atomic)
  * synchronizes access to those variables.
  */
 struct data {
-	struct fam_atomic_32 compare_store_32;
-	struct fam_atomic_64 compare_store_64;
-	struct fam_atomic_32 swap_32;
-	struct fam_atomic_64 swap_64;
-	struct fam_atomic_32 fa_32;
-	struct fam_atomic_64 fa_64;
+	int32_t compare_store_32;
+	int64_t compare_store_64;
+	int32_t swap_32;
+	int64_t swap_64;
+	int32_t fa_32;
+	int64_t fa_64;
 } __attribute__((__aligned__(64)));
 
 struct benchmark_data {
@@ -164,8 +164,8 @@ void *run(void *args)
 		benchmark_data.w4 += 1;
 		release_swap_64(&data->swap_64);
 
-		fam_atomic_32_fetch_and_add(&data->fa_32, 1);
-		fam_atomic_64_fetch_and_add(&data->fa_64, 1);
+		fam_atomic_32_fetch_add(&data->fa_32, 1);
+		fam_atomic_64_fetch_add(&data->fa_64, 1);
 	}
 
 	return NULL;
