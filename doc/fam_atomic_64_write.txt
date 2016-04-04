@@ -12,7 +12,7 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 void
-fam_atomic_64_write(struct fam_atomic_64 *address,
+fam_atomic_64_write(int64_t *address,
 		    int64_t value);
 
 cc ... -lfam_atomic

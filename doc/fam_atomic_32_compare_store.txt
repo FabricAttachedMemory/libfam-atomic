@@ -1,10 +1,10 @@
-fam_atomic_32_compare_and_store_unpadded(3)
-===========================================
+fam_atomic_32_compare_store(3)
+==============================
 :doctype: manpage
 
 NAME
 ----
-fam_atomic_32_compare_and_store_unpadded - unpadded 32 bit fam atomic compare and store
+fam_atomic_32_compare_store - 32 bit fam atomic compare and store
 
 SYNOPSIS
 --------
@@ -12,16 +12,16 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 int32_t
-fam_atomic_32_compare_and_store_unpadded(int32_t *address,
-					 int32_t compare,
-					 int32_t store);
+fam_atomic_32_compare_store(int32_t *address,
+			    int32_t compare,
+			    int32_t store);
 
 cc ... -lfam_atomic
 ....
 DESCRIPTION
 -----------
-Given 'address', which is a pointer to an unpadded 32 bit fam
-atomic variable, reads the contents of the atomic variable and
+Given 'address', which is a pointer to a 32 bit fam atomic 
+variable, reads the contents of the atomic variable and
 checks if it is equal to 'compare'. If true, the variable
 gets set to 'store'. If false, the variable does not get
 modified. Returns the original value that was read.

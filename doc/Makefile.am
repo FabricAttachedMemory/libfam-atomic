@@ -2,54 +2,31 @@ SUFFIXES = .txt .3
 
 DOC_FILES= \
 	fam_atomic.txt \
-	fam_atomic_128_compare_and_store.txt \
-	fam_atomic_128_compare_and_store_unpadded.txt \
+	fam_atomic_128_compare_store.txt \
 	fam_atomic_128_read.txt \
-	fam_atomic_128_read_unpadded.txt \
 	fam_atomic_128_swap.txt \
-	fam_atomic_128_swap_unpadded.txt \
 	fam_atomic_128_write.txt \
-	fam_atomic_128_write_unpadded.txt \
-	fam_atomic_32_compare_and_store.txt \
-	fam_atomic_32_compare_and_store_unpadded.txt \
-	fam_atomic_32_fetch_and_add.txt \
-	fam_atomic_32_fetch_and_add_unpadded.txt \
+	fam_atomic_32_compare_store.txt \
+	fam_atomic_32_fetch_add.txt \
 	fam_atomic_32_fetch_and.txt \
-	fam_atomic_32_fetch_and_unpadded.txt \
 	fam_atomic_32_fetch_or.txt \
-	fam_atomic_32_fetch_or_unpadded.txt \
 	fam_atomic_32_fetch_xor.txt \
-	fam_atomic_32_fetch_xor_unpadded.txt \
 	fam_atomic_32_read.txt \
-	fam_atomic_32_read_unpadded.txt \
 	fam_atomic_32_swap.txt \
-	fam_atomic_32_swap_unpadded.txt \
 	fam_atomic_32_write.txt \
-	fam_atomic_32_write_unpadded.txt \
-	fam_atomic_64_compare_and_store.txt \
-	fam_atomic_64_compare_and_store_unpadded.txt \
-	fam_atomic_64_fetch_and_add.txt \
-	fam_atomic_64_fetch_and_add_unpadded.txt \
+	fam_atomic_64_compare_store.txt \
+	fam_atomic_64_fetch_add.txt \
 	fam_atomic_64_fetch_and.txt \
-	fam_atomic_64_fetch_and_unpadded.txt \
 	fam_atomic_64_fetch_or.txt \
-	fam_atomic_64_fetch_or_unpadded.txt \
 	fam_atomic_64_fetch_xor.txt \
-	fam_atomic_64_fetch_xor_unpadded.txt \
 	fam_atomic_64_read.txt \
-	fam_atomic_64_read_unpadded.txt \
 	fam_atomic_64_swap.txt \
-	fam_atomic_64_swap_unpadded.txt \
 	fam_atomic_64_write.txt \
-	fam_atomic_64_write_unpadded.txt \
 	fam_atomic_register_region.txt \
 	fam_atomic_unregister_region.txt \
 	fam_spin_lock.txt \
-	fam_spin_lock_unpadded.txt \
 	fam_spin_trylock.txt \
-	fam_spin_trylock_unpadded.txt \
-	fam_spin_unlock.txt \
-	fam_spin_unlock_unpadded.txt
+	fam_spin_unlock.txt
 
 man_MANS = $(DOC_FILES:.txt=.3)
 

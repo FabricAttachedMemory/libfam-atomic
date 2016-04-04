@@ -12,7 +12,7 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 int32_t
-fam_atomic_32_read(struct fam_atomic_32 *address);
+fam_atomic_32_read(int32_t *address);
 
 cc ... -lfam_atomic
 ....

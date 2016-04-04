@@ -1,10 +1,10 @@
-fam_atomic_64_compare_and_store(3)
-==================================
+fam_atomic_64_compare_store(3)
+==============================
 :doctype: manpage
 
 NAME
 ----
-fam_atomic_64_compare_and_store - 64 bit fam atomic compare and store
+fam_atomic_64_compare_store - 64 bit fam atomic compare and store
 
 SYNOPSIS
 --------
@@ -12,9 +12,9 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 int64_t
-fam_atomic_64_compare_and_store(struct fam_atomic_64 *address,
-			        int64_t compare,
-			        int64_t store);
+fam_atomic_64_compare_store(int64_t *address,
+			    int64_t compare,
+			    int64_t store);
 
 cc ... -lfam_atomic
 ....

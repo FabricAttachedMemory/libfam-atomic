@@ -12,8 +12,8 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 void
-fam_atomic_128_read(struct fam_atomic_128 *address,
-		    int64_t result[2]);
+fam_atomic_128_read(int64_t *address,
+                    int64_t result[2]);
 
 cc ... -lfam_atomic
 ....

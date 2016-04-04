@@ -12,7 +12,7 @@ SYNOPSIS
 #include <fam_atomic.h>
 
 int64_t
-fam_atomic_64_swap(struct fam_atomic_64 *address,
+fam_atomic_64_swap(int64_t *address,
 		   int64_t value);
 
 cc ... -lfam_atomic
