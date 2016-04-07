@@ -12,7 +12,7 @@ override_dh_auto_configure:
 	dh_auto_configure --builddirectory=$(DEB_BUILDDIR)
 
 override_dh_strip:
-	dh_strip --dbg-package=libfam-atomic1-dbg
+	dh_strip --dbg-package=libfam-atomic2-dbg
 
 %:
 	dh $@ --builddirectory=$(DEB_BUILDDIR)

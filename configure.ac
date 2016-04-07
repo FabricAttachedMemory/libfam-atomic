@@ -25,7 +25,7 @@ dnl ==========================================================================
 
 dnl This is the package version number, not the shared library
 dnl version.
-AC_INIT([fam_atomic], [1.5], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
+AC_INIT([fam_atomic], [2.0], [http://hlinux-home.us.rdlabs.hpecorp.net/bugzilla/enter_bug.cgi?product=Userspace])
 AM_INIT_AUTOMAKE([1.11 parallel-tests])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
@@ -61,7 +61,7 @@ dnl libtool versioning
 dnl bump revision when fixing bugs
 dnl bump current and age, reset revision to zero when adding APIs
 dnl bump current, leave age, reset revision to zero when changing/removing APIS
-LIBT_CURRENT=1
+LIBT_CURRENT=2
 LIBT_REVISION=0
 AC_SUBST(LIBT_CURRENT)
 AC_SUBST(LIBT_REVISION)

@@ -1,3 +1,9 @@
+libfam-atomic (2.0+l4tm) stable; urgency=low
+
+  * Works with aperture swapping, API changes, atomics on DRAM
+
+ -- Jason Low <jason.low2@hpe.com>  Mon, 4 Apr 2016 14:56:45 -0800
+
 libfam-atomic (1.5+l4tm) stable; urgency=low
 
   * Fixes registration between threads and compiler errors when using C++.

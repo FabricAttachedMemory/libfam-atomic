@@ -11,7 +11,7 @@ Build-Depends: debhelper (>= 9), pkg-config, libtool, automake,
  docbook-xsl, docbook-xml
 Standards-Version: 3.9.6.1
 
-Package: libfam-atomic1
+Package: libfam-atomic2
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -21,28 +21,28 @@ Description: Fabric attached memory atomic library
  This package contains the fam-atomic library, which provides
  access to the fabric attached memory atomic operations.
 
-Package: libfam-atomic1-dev
+Package: libfam-atomic2-dev
 Section: libdevel
 Architecture: any
-Depends: libfam-atomic1 (= ${binary:Version}), ${misc:Depends}
+Depends: libfam-atomic2 (= ${binary:Version}), ${misc:Depends}
 Multi-Arch: same
 Provides: libfam-atomic-dev
 Description: Fabric attached memory atomic library - development
  This package contains the fam-atomic library, which provides
  access to the fabric attached memory atomic operations.
 
-Package: libfam-atomic1-dbg
+Package: libfam-atomic2-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Depends: libfam-atomic1 (= ${binary:Version}), ${misc:Depends}
+Depends: libfam-atomic2 (= ${binary:Version}), ${misc:Depends}
 Multi-Arch: same
 Description: Fabric attached memory atomic library - debugging symbols
  This package contains the fam-atomic library, which provides
  access to the fabric attached memory atomic operations.
  .
  This package contains the debugging symbols associated with
- libfam-atomic1. They will automatically be used by gdb for debugging
+ libfam-atomic2. They will automatically be used by gdb for debugging
  fam-atomic-related issues. It should be installed when experiencing
  crashes involving fam-atomic so that a better backtrace is provided
  in the bug report.
