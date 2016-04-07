@@ -1,0 +1,26 @@
+fam_spin_lock_init(3)
+=====================
+:doctype: manpage
+
+NAME
+----
+fam_spin_lock_init - Initializes an fam spinlock
+
+SYNOPSIS
+--------
+....
+#include <fam_atomic.h>
+
+void
+fam_spin_lock_init(struct fam_spinlock *lock);
+
+cc ... -lfam_atomic
+....
+DESCRIPTION
+-----------
+Given 'lock', which is a pointer to an fam spinlock, initializes
+the lock. The lock must be initialized before it gets used.
+
+RETURN VALUE
+------------
+None
