@@ -768,7 +768,7 @@ bool rcu_rbtree_region_search(void *address, int *dev_fd, int *lfs_fd,
 
 	rcu_read_unlock();
 
-	return ret;
+	return found;
 }
 
 /*
