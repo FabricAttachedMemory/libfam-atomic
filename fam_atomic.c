@@ -819,20 +819,20 @@ static inline bool lfs_running(void)
 	return found;
 }
 
-int fam_atomic_register_region(void *region_start, size_t region_length,
-			       int fd, off_t offset)
+static inline void check_use_zbridge_atomics(int lfs_fd,
+					     bool *use_zbridge_atomics,
+					     int *dev_fd)
 {
-	bool use_zbridge_atomics = false;
-	int lfs_fd, dev_fd;
-
-	lfs_fd = fd;
-
 	/*
 	 * zbridge support is only available on ARM64, so avoid the
 	 * overhead of check if the zbridge atomics should be used
 	 * on x86 systems which only use the simulated atomics.
+	 *
+	 * Additionally, FAM_ATOMIC_SIMULATED can be defined so that
+	 * the library would use the simulated atomics. This is useful
+	 * on "regular" ARM64 machines that don't have zbridge support.
 	 */
-#ifdef __aarch64__
+#if defined(__aarch64__) && !defined(FAM_ATOMIC_SIMULATED)
 	/*
 	 * TODO: This is temporary code. On TMAS, the ioctls are
 	 * implemented in a separate driver and not a part of LFS, so
@@ -843,8 +843,8 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 	 * sure that the fam atomic driver has been installed in order
 	 * for the library to use the zbridge atomics.
 	 */
-	dev_fd = open("/dev/fam_atomic", O_RDONLY);
-	if (dev_fd == -1) {
+	*dev_fd = open("/dev/fam_atomic", O_RDONLY);
+	if (*dev_fd == -1) {
 		printf("ERROR: fam_atomic_register_region(): This system\n");
 		printf("       does not have the fam atomic driver installed.\n");
 		printf("       The zbridge atomics would not get used\n");
@@ -870,9 +870,24 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 			raise(SIGSEGV);
 		}
 
-		use_zbridge_atomics = true;
+		*use_zbridge_atomics = true;
+	} else {
+		*use_zbridge_atomics = false;
 	}
+#else
+	*use_zbridge_atomics = false;
 #endif
+}
+
+int fam_atomic_register_region(void *region_start, size_t region_length,
+			       int fd, off_t offset)
+{
+	bool use_zbridge_atomics;
+	int lfs_fd, dev_fd;
+
+	lfs_fd = fd;
+
+	check_use_zbridge_atomics(lfs_fd, &use_zbridge_atomics, &dev_fd);
 
 	rcu_rbtree_region_insert(region_start, region_length, dev_fd, lfs_fd,
 				 offset, use_zbridge_atomics);
