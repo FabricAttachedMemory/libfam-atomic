@@ -115,7 +115,6 @@ fam_atomic_unregister_region(void *region_start,
  * data. This is required to ensure the correctness of the atomic data.
  */
 
-
 /*
  * Atomically adds "increment" to the atomic variable and returns the
  * previous value of the atomic variable.
@@ -299,6 +298,235 @@ fam_spin_trylock(struct fam_spinlock *lock);
 
 extern void
 fam_spin_unlock(struct fam_spinlock *lock);
+
+/*
+ * Deprecated unpadded APIs.
+ */
+static inline int32_t
+fam_atomic_32_fetch_and_add_unpadded(int32_t *address,
+				     int32_t increment) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
+				     int64_t increment) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_swap_unpadded(int32_t *address,
+			    int32_t value) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_swap_unpadded(int64_t *address,
+			    int64_t value) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_128_swap_unpadded(int64_t *address,
+			     int64_t value[2],
+			     int64_t result[2]) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_compare_and_store_unpadded(int32_t *address,
+					 int32_t compare,
+					 int32_t store) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_compare_and_store_unpadded(int64_t *address,
+					 int64_t compare,
+					 int64_t store) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_128_compare_and_store_unpadded(int64_t *address,
+					  int64_t compare[2],
+					  int64_t store[2],
+					  int64_t result[2]) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_read_unpadded(int32_t *address) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_read_unpadded(int64_t *address) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_128_read_unpadded(int64_t *address,
+			     int64_t result[2]) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_32_write_unpadded(int32_t *address,
+			     int32_t value) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_64_write_unpadded(int64_t *address,
+			     int64_t value) __attribute__ ((deprecated));
+
+static inline void
+fam_atomic_128_write_unpadded(int64_t *address,
+			      int64_t value[2]) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_fetch_and_unpadded(int32_t *address,
+				 int32_t arg) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_fetch_and_unpadded(int64_t *address,
+				 int64_t arg) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_fetch_or_unpadded(int32_t *address,
+				int32_t arg) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_fetch_or_unpadded(int64_t *address,
+				int64_t arg) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_fetch_xor_unpadded(int32_t *address,
+				 int32_t arg) __attribute__ ((deprecated));
+
+static inline int64_t
+fam_atomic_64_fetch_xor_unpadded(int64_t *address,
+				 int64_t arg) __attribute__ ((deprecated));
+
+static inline int32_t
+fam_atomic_32_fetch_and_add_unpadded(int32_t *address,
+				     int32_t increment)
+{
+	return fam_atomic_32_fetch_add(address, increment);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_and_add_unpadded(int64_t *address,
+				     int64_t increment)
+{
+	return fam_atomic_64_fetch_add(address, increment);
+}
+
+static inline int32_t
+fam_atomic_32_swap_unpadded(int32_t *address,
+			    int32_t value)
+{
+	return fam_atomic_32_swap(address, value);
+}
+
+static inline int64_t
+fam_atomic_64_swap_unpadded(int64_t *address,
+			    int64_t value)
+{
+	return fam_atomic_64_swap(address, value);
+}
+
+static inline void
+fam_atomic_128_swap_unpadded(int64_t *address,
+			     int64_t value[2],
+			     int64_t result[2])
+{
+	fam_atomic_128_swap(address, value, result);
+}
+
+static inline int32_t
+fam_atomic_32_compare_and_store_unpadded(int32_t *address,
+					 int32_t compare,
+					 int32_t store)
+{
+	return fam_atomic_32_compare_store(address, compare, store);
+}
+
+static inline int64_t
+fam_atomic_64_compare_and_store_unpadded(int64_t *address,
+					 int64_t compare,
+					 int64_t store)
+{
+	return fam_atomic_64_compare_store(address, compare, store);
+}
+
+static inline void
+fam_atomic_128_compare_and_store_unpadded(int64_t *address,
+					  int64_t compare[2],
+					  int64_t store[2],
+					  int64_t result[2])
+{
+	fam_atomic_128_compare_store(address, compare, store, result);
+}
+
+static inline int32_t
+fam_atomic_32_read_unpadded(int32_t *address)
+{
+	return fam_atomic_32_read(address);
+}
+
+static inline int64_t
+fam_atomic_64_read_unpadded(int64_t *address)
+{
+	return fam_atomic_64_read(address);
+}
+
+static inline void
+fam_atomic_128_read_unpadded(int64_t *address,
+			     int64_t result[2])
+{
+	fam_atomic_128_read(address, result);
+}
+
+static inline void
+fam_atomic_32_write_unpadded(int32_t *address,
+			     int32_t value)
+{
+	fam_atomic_32_write(address, value);
+}
+
+static inline void
+fam_atomic_64_write_unpadded(int64_t *address,
+			     int64_t value)
+{
+	fam_atomic_64_write(address, value);
+}
+
+static inline void
+fam_atomic_128_write_unpadded(int64_t *address,
+			      int64_t value[2])
+{
+	fam_atomic_128_write(address, value);
+}
+
+static inline int32_t
+fam_atomic_32_fetch_and_unpadded(int32_t *address,
+				 int32_t arg)
+{
+	return fam_atomic_32_fetch_and(address, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_and_unpadded(int64_t *address,
+				 int64_t arg)
+{
+	return fam_atomic_64_fetch_and(address, arg);
+}
+
+static inline int32_t
+fam_atomic_32_fetch_or_unpadded(int32_t *address,
+				int32_t arg)
+{
+	return fam_atomic_32_fetch_or(address, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_or_unpadded(int64_t *address,
+				int64_t arg)
+{
+	return fam_atomic_64_fetch_or(address, arg);
+}
+
+static inline int32_t
+fam_atomic_32_fetch_xor_unpadded(int32_t *address,
+				 int32_t arg)
+{
+	return fam_atomic_32_fetch_xor(address, arg);
+}
+
+static inline int64_t
+fam_atomic_64_fetch_xor_unpadded(int64_t *address,
+				 int64_t arg)
+{
+	return fam_atomic_64_fetch_xor(address, arg);
+}
 
 #ifdef __cplusplus
 }
