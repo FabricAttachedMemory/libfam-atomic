@@ -891,6 +891,8 @@ int fam_atomic_register_region(void *region_start, size_t region_length,
 
 	rcu_rbtree_region_insert(region_start, region_length, dev_fd, lfs_fd,
 				 offset, use_zbridge_atomics);
+
+	return 0;
 }
 
 void fam_atomic_unregister_region(void *region_start, size_t region_length)
