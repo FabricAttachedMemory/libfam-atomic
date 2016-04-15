@@ -1,3 +1,10 @@
+libfam-atomic (2.1+l4tm) stable; urgency=low
+
+  * Require registration, ARM64 simulated library, deprecate unpadded APIs.
+
+ -- Jason Low <jason.low2@hpe.com>  Tue, 12 Apr 2016 15:35:39 -0800
+
+
 libfam-atomic (2.0+l4tm) stable; urgency=low
 
   * Works with aperture swapping, API changes, atomics on DRAM
