@@ -23,11 +23,12 @@
 #include <stdio.h>
 #include <fam_atomic.h>
 
+/*
+ * Structure containing an fam atomic and fam spinlock.
+ * The structure is in its own cacheline so the fam
+ * atomic and lock don't share cachelines with regular data.
+ */
 struct data {
-	/*
-	 * Regular fam atomic and fam spinlock.
-	 * Each takes up an entire cacheline.
-	 */
 	int64_t			atomic;
 	struct fam_spinlock	spinlock;
 } __attribute__((__aligned__(64)));
