@@ -62,7 +62,7 @@ main(int argc, char **argv) {
 	assert(next == 12);
 
 	/* Initialize spinlock */
-	data->spinlock = FAM_SPINLOCK_INITIALIZER;
+	fam_spin_lock_init(&data->spinlock);
 
 	/* Lock it */
 	fam_spin_lock(&data->spinlock);

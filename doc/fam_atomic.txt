@@ -177,7 +177,9 @@ C11 atomic operations so that applications can
 use this library without regard to the
 location of the storage.
 
-To initialize a spinlock, assign the FAM_SPINLOCK_INITIALIZER.
+To initialize a spinlock, use fam_spin_lock_init() or
+assign the FAM_SPINLOCK_INITIALIZER followed by a
+flush of the lock structure.
 
 EXAMPLE
 -------
