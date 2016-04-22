@@ -28,7 +28,7 @@ Register and unregister FAM areas with the library
 				     size_t region_length);
 ....
 
-Unpadded atomic operations. These are not cacheline aligned,
+Atomic operations. These are not cacheline aligned,
 so care must be taken when using them to avoid accessing
 memory within the same cacheline from the SoC without
 performing the required cache flush and invalidate operations.
@@ -109,7 +109,7 @@ performing the required cache flush and invalidate operations.
 			       int64_t arg);
 ....
 
-Spinlock operations unpadded
+Spinlock operations
 ....
 	struct fam_spinlock;
 
