@@ -17,15 +17,15 @@ Include the header file
 Register and unregister FAM areas with the library
 
 ....
-	int
-	fam_atomic_register_region(void *region_start,
-				   size_t region_length,
-				   int fd,
-				   off_t offset);
+int
+fam_atomic_register_region(void *region_start,
+			   size_t region_length,
+			   int fd,
+			   off_t offset);
 
-	void
-	fam_atomic_unregister_region(void *region_start,
-				     size_t region_length);
+void
+fam_atomic_unregister_region(void *region_start,
+			     size_t region_length);
 ....
 
 Atomic operations. These are not cacheline aligned,
@@ -33,96 +33,95 @@ so care must be taken when using them to avoid accessing
 memory within the same cacheline from the SoC without
 performing the required cache flush and invalidate operations.
 ....
-	int32_t
-	fam_atomic_32_fetch_add(int32_t *address,
-				int32_t increment);
+int32_t
+fam_atomic_32_fetch_add(int32_t *address,
+			int32_t increment);
 
-	int64_t
-	fam_atomic_64_fetch_add(int64_t *address,
-				int64_t increment);
+int64_t
+fam_atomic_64_fetch_add(int64_t *address,
+			int64_t increment);
 
-	int32_t
-	fam_atomic_32_swap(int32_t *address,
-			   int32_t value);
+int32_t
+fam_atomic_32_swap(int32_t *address,
+		   int32_t value);
 
-	int64_t
-	fam_atomic_64_swap(int64_t *address,
-			   int64_t value);
+int64_t
+fam_atomic_64_swap(int64_t *address,
+		   int64_t value);
 
-	void
-	fam_atomic_128_swap(int64_t *address,
-			    int64_t value[2],
-			    int64_t result[2]);
+void
+fam_atomic_128_swap(int64_t *address,
+		    int64_t value[2],
+		    int64_t result[2]);
 
-	int32_t
-	fam_atomic_32_compare_store(int32_t *address,
-				    int32_t compare,
-				    int32_t store);
+int32_t
+fam_atomic_32_compare_store(int32_t *address,
+			    int32_t compare,
+			    int32_t store);
 
-	int64_t
-	fam_atomic_64_compare_store(int64_t *address,
-				    int64_t compare,
-				    int64_t store);
+int64_t
+fam_atomic_64_compare_store(int64_t *address,
+			    int64_t compare,
+			    int64_t store);
 
-	void
-	fam_atomic_128_compare_store(int64_t *address,
-				     int64_t compare[2],
-				     int64_t store[2],
-				     int64_t result[2]);
+void
+fam_atomic_128_compare_store(int64_t *address,
+			     int64_t compare[2],
+			     int64_t store[2],
+			     int64_t result[2]);
 
-	int32_t
-	fam_atomic_32_read(int32_t *address);
+int32_t
+fam_atomic_32_read(int32_t *address);
 
-	int64_t
-	fam_atomic_64_read(int64_t *address);
+int64_t
+fam_atomic_64_read(int64_t *address);
 
-	void
-	fam_atomic_128_read(int64_t *address,
-			    int64_t result[2]);
+void
+fam_atomic_128_read(int64_t *address,
+		    int64_t result[2]);
 
-	void
-	fam_atomic_32_write(int32_t *address,
-			    int32_t value);
+void
+fam_atomic_32_write(int32_t *address,
+		    int32_t value);
 
-	void
-	fam_atomic_64_write(int64_t *address,
-			    int64_t value);
+void
+fam_atomic_64_write(int64_t *address,
+		    int64_t value);
 
-	void
-	fam_atomic_128_write(int64_t *address,
-			     int64_t value[2]);
+void
+fam_atomic_128_write(int64_t *address,
+		     int64_t value[2]);
 
-	int32_t
-	fam_atomic_32_fetch_and(int32_t *address,
-				int32_t arg);
+int32_t
+fam_atomic_32_fetch_and(int32_t *address,
+			int32_t arg);
 
-	int64_t
-	fam_atomic_64_fetch_and(int64_t *address,
-				int64_t arg);
+int64_t
+fam_atomic_64_fetch_and(int64_t *address,
+			int64_t arg);
 
-	int32_t
-	fam_atomic_32_fetch_or(int32_t *address,
-			       int32_t arg);
+int32_t
+fam_atomic_32_fetch_or(int32_t *address,
+		       int32_t arg);
 
-	int64_t
-	fam_atomic_64_fetch_or(int64_t *address,
-			       int64_t arg);
+int64_t
+fam_atomic_64_fetch_or(int64_t *address,
+		       int64_t arg);
 ....
 
 Spinlock operations
 ....
-	struct fam_spinlock;
+struct fam_spinlock;
 
-	void
-	fam_spin_lock(struct fam_spinlock *lock);
+void
+fam_spin_lock(struct fam_spinlock *lock);
 
-	bool
-	fam_spin_trylock(struct fam_spinlock *lock);
+bool
+fam_spin_trylock(struct fam_spinlock *lock);
 
-	void
-	fam_spin_unlock(struct fam_spinlock *lock);
+void
+fam_spin_unlock(struct fam_spinlock *lock);
 ....
-
 
 DESCRIPTION
 -----------
