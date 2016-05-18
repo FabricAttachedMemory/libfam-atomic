@@ -106,7 +106,7 @@ struct data {
 	int64_t swap_64;
 	int32_t fetch_add_32;
 	int64_t fetch_add_64;
-};
+} __attribute__((__aligned__(128)));
 
 /*
  * This structure contains data for managing the benchmark.
