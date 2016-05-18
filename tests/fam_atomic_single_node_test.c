@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <assert.h>
 
 static inline void
 acquire_compare_and_store_32(int32_t *atomic)
@@ -57,6 +58,33 @@ release_compare_and_store_64(int64_t *atomic)
 }
 
 static inline void
+acquire_compare_and_store_128(int64_t *atomic)
+{
+	int64_t compare[2];
+	int64_t store[2];
+	int64_t result[2];
+
+	compare[0] = compare[1] = 0;
+	store[0] = store[1] = 1;
+
+	for (;;) {
+		fam_atomic_128_compare_store(atomic, compare, store, result);
+
+		if (result[0] == compare[0] && result[1] == compare[1])
+			break;
+	}
+}
+
+static inline void
+release_compare_and_store_128(int64_t *atomic)
+{
+	int64_t result[2];
+
+	result[0] = result[1] = 0;
+	fam_atomic_128_write(atomic, result);
+}
+
+static inline void
 acquire_swap_32(int32_t *atomic)
 {
 	for (;;) {
@@ -86,6 +114,32 @@ release_swap_64(int64_t *atomic)
 	fam_atomic_64_write(atomic, 0);
 }
 
+static inline void
+acquire_swap_128(int64_t *atomic) 
+{
+	int64_t value[2];
+	int64_t result[2];
+
+	value[0] = value[1] = 1;
+
+	for (;;) {
+		fam_atomic_128_swap(atomic, value, result);
+
+		if (!result[0] && !result[1])
+			break;
+	}
+}
+
+static inline void
+release_swap_128(int64_t *atomic)
+{
+	int64_t value[2];
+
+	value[0] = value[1] = 0;
+
+	fam_atomic_128_write(atomic, value);
+}
+
 /*
  * This is the main data structure containing regular variables
  * that get modified by multiple processes, and fam_atomics which
@@ -98,13 +152,23 @@ struct data {
 	int64_t swap_64;
 	int32_t fa_32;
 	int64_t fa_64;
-} __attribute__((__aligned__(64)));
+	int32_t fetch_and_32;
+	int64_t fetch_and_64;
+	int32_t fetch_or_32;
+	int64_t fetch_or_64;
+	int32_t fetch_xor_32;
+	int64_t fetch_xor_64;
+	int64_t compare_store_128[2];
+	int64_t swap_128[2];
+} __attribute__((__aligned__(128)));
 
 struct benchmark_data {
 	int64_t w1;
 	int64_t w2;
 	int64_t w3;
 	int64_t w4;
+	int64_t w5;
+	int64_t w6;
 	int start;
 	int done;
 	int64_t total_iterations;
@@ -164,6 +228,20 @@ void *run(void *args)
 		benchmark_data.w4 += 1;
 		release_swap_64(&data->swap_64);
 
+		/*
+		 * compare and store 128.
+		 */
+		acquire_compare_and_store_128(data->compare_store_128);
+		benchmark_data.w5 += 1;
+		release_compare_and_store_128(data->compare_store_128);
+
+		/*
+		 * swap 128.
+		 */
+		acquire_swap_128(data->swap_128);
+		benchmark_data.w6 += 1;
+		release_swap_128(data->swap_128);
+
 		fam_atomic_32_fetch_add(&data->fa_32, 1);
 		fam_atomic_64_fetch_add(&data->fa_64, 1);
 	}
@@ -182,6 +260,7 @@ int main(int argc, char **argv)
 	pthread_t t[nr_threads];
 	struct timespec start, now;
 	int curr_duration_sec;
+	int prev;
 
 	fd = open(file, O_CREAT | O_RDWR, 0666);
 
@@ -209,11 +288,19 @@ int main(int argc, char **argv)
 	fam_atomic_64_write(&data->swap_64, 0);
 	fam_atomic_32_write(&data->fa_32, 0);
 	fam_atomic_64_write(&data->fa_64, 0);
+	fam_atomic_32_write(&data->fetch_and_32, 0);
+	fam_atomic_64_write(&data->fetch_and_64, 0);
+	fam_atomic_32_write(&data->fetch_or_32, 0);
+	fam_atomic_64_write(&data->fetch_or_64, 0);
+	fam_atomic_32_write(&data->fetch_xor_32, 0);
+	fam_atomic_64_write(&data->fetch_xor_64, 0);
 
 	benchmark_data.w1 = 0;
 	benchmark_data.w2 = 0;
 	benchmark_data.w3 = 0;
 	benchmark_data.w4 = 0;
+	benchmark_data.w5 = 0;
+	benchmark_data.w6 = 0;
 	__sync_lock_test_and_set(&benchmark_data.start, 0);
 	__sync_lock_test_and_set(&benchmark_data.done, 0);
 	benchmark_data.total_iterations = 0;
@@ -221,6 +308,73 @@ int main(int argc, char **argv)
 	__sync_synchronize();
 
 	printf("\nRunning single node fam atomic test:\n\n");
+
+	/*
+	 * Test fetch_{and,or,xor} APIs.
+	 */
+	prev = fam_atomic_32_fetch_and(&data->fetch_and_32, 0);
+	assert(prev == 0);
+	prev = fam_atomic_32_fetch_and(&data->fetch_and_32, 1);
+	assert(prev == 0);
+	fam_atomic_32_write(&data->fetch_and_32, 1);
+	prev = fam_atomic_32_fetch_and(&data->fetch_and_32, 1);
+	assert(prev == 1);
+	prev = fam_atomic_32_fetch_and(&data->fetch_and_32, 0);
+	assert(prev == 1);
+	prev = fam_atomic_32_swap(&data->fetch_and_32, 0);
+	assert(prev == 0);
+
+	prev = fam_atomic_32_fetch_or(&data->fetch_or_32, 0);
+	assert(prev == 0);
+	prev = fam_atomic_32_fetch_or(&data->fetch_or_32, 1);
+	assert(prev == 0);
+	prev = fam_atomic_32_fetch_or(&data->fetch_or_32, 0);
+	assert(prev == 1);
+	prev = fam_atomic_32_swap(&data->fetch_or_32, 0);
+	assert(prev == 1);
+
+	prev = fam_atomic_32_fetch_xor(&data->fetch_xor_32, 0);
+	assert(prev == 0);
+	prev = fam_atomic_32_fetch_xor(&data->fetch_xor_32, 1);
+	assert(prev == 0);
+	prev = fam_atomic_32_fetch_xor(&data->fetch_xor_32, 0);
+	assert(prev == 1);
+	prev = fam_atomic_32_fetch_xor(&data->fetch_xor_32, 1);
+	assert(prev == 1);
+	prev = fam_atomic_32_swap(&data->fetch_xor_32, 0);
+	assert(prev == 0);
+
+	prev = fam_atomic_64_fetch_and(&data->fetch_and_64, 0);
+	assert(prev == 0);
+	prev = fam_atomic_64_fetch_and(&data->fetch_and_64, 1);
+	assert(prev == 0);
+	fam_atomic_64_write(&data->fetch_and_64, 1);
+	prev = fam_atomic_64_fetch_and(&data->fetch_and_64, 1);
+	assert(prev == 1);
+	prev = fam_atomic_64_fetch_and(&data->fetch_and_64, 0);
+	assert(prev == 1);
+	prev = fam_atomic_64_swap(&data->fetch_and_64, 0);
+	assert(prev == 0);
+
+	prev = fam_atomic_64_fetch_or(&data->fetch_or_64, 0);
+	assert(prev == 0);
+	prev = fam_atomic_64_fetch_or(&data->fetch_or_64, 1);
+	assert(prev == 0);
+	prev = fam_atomic_64_fetch_or(&data->fetch_or_64, 0);
+	assert(prev == 1);
+	prev = fam_atomic_64_swap(&data->fetch_or_64, 0);
+	assert(prev == 1);
+
+	prev = fam_atomic_64_fetch_xor(&data->fetch_xor_64, 0);
+	assert(prev == 0);
+	prev = fam_atomic_64_fetch_xor(&data->fetch_xor_64, 1);
+	assert(prev == 0);
+	prev = fam_atomic_64_fetch_xor(&data->fetch_xor_64, 0);
+	assert(prev == 1);
+	prev = fam_atomic_64_fetch_xor(&data->fetch_xor_64, 1);
+	assert(prev == 1);
+	prev = fam_atomic_64_swap(&data->fetch_xor_64, 0);
+	assert(prev == 0);
 
 	/*
 	 * Create nr_threads to run the tests.
@@ -287,6 +441,8 @@ int main(int argc, char **argv)
 	    benchmark_data.w2 == benchmark_data.total_iterations &&
 	    benchmark_data.w3 == benchmark_data.total_iterations &&
 	    benchmark_data.w4 == benchmark_data.total_iterations &&
+	    benchmark_data.w5 == benchmark_data.total_iterations &&
+	    benchmark_data.w6 == benchmark_data.total_iterations &&
 	    fam_atomic_32_read(&data->fa_32) == benchmark_data.total_iterations &&
 	    fam_atomic_64_read(&data->fa_64) == benchmark_data.total_iterations) {
 		printf("\n\nTest completed successfully!\n\n");
