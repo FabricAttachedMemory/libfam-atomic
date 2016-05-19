@@ -266,8 +266,8 @@ int main(int argc, char **argv)
 	struct benchmark_data *benchmark_data;
 	int fd_benchmark = open("fam_atomic_iterations.data", O_CREAT | O_RDWR, 0666);
 	unlink("fam_atomic_iterations.data");
-	ftruncate(fd_benchmark, sizeof(int64_t));
-	benchmark_data = mmap(0, sizeof(int64_t), PROT_READ | PROT_WRITE,
+	ftruncate(fd_benchmark, sizeof(struct benchmark_data));
+	benchmark_data = mmap(0, sizeof(struct benchmark_data), PROT_READ | PROT_WRITE,
 		   				  MAP_SHARED, fd_benchmark, 0);
 	benchmark_data->iterations = 0;
 	benchmark_data->start = false;
