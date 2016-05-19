@@ -261,6 +261,7 @@ int main(int argc, char **argv)
 	struct timespec start, now;
 	int curr_duration_sec;
 	int prev;
+	int64_t value[2];
 
 	fd = open(file, O_CREAT | O_RDWR, 0666);
 
@@ -282,6 +283,8 @@ int main(int argc, char **argv)
 		return 3;
 	}
 
+	value[0] = value[1] = 0;
+
 	fam_atomic_32_write(&data->compare_store_32, 0);
 	fam_atomic_64_write(&data->compare_store_64, 0);
 	fam_atomic_32_write(&data->swap_32, 0);
@@ -294,6 +297,8 @@ int main(int argc, char **argv)
 	fam_atomic_64_write(&data->fetch_or_64, 0);
 	fam_atomic_32_write(&data->fetch_xor_32, 0);
 	fam_atomic_64_write(&data->fetch_xor_64, 0);
+	fam_atomic_128_write(data->compare_store_128, value);
+	fam_atomic_128_write(data->swap_128, value);
 
 	benchmark_data.w1 = 0;
 	benchmark_data.w2 = 0;
