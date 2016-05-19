@@ -94,6 +94,94 @@ release_swap_64(int64_t *atomic)
 	(void) fam_atomic_64_fetch_add(atomic, -1);
 }
 
+static inline void
+acquire_compare_and_store_128(int64_t *atomic)
+{
+        int64_t compare[2];
+        int64_t store[2];
+        int64_t result[2];
+
+        compare[0] = compare[1] = AVAILABLE;
+        store[0] = store[1] = ACQUIRED;
+
+        for (;;) {
+                fam_atomic_128_compare_store(atomic, compare, store, result);
+
+                if (result[0] == compare[0] && result[1] == compare[1])
+                        break;
+        }
+}
+
+static inline void
+release_compare_and_store_128(int64_t *atomic)
+{
+	int64_t compare[2];
+	int64_t store[2];
+	int64_t result[2];
+
+	/*
+	 * We purposely implement the release function by decrementing
+	 * the atomic value instead of setting it to the available state.
+	 * The effect of this is that a deadlock occurs if there are bugs
+	 * with the atomic, and the user can know something went wrong with
+	 * the test.
+	 */
+	for (;;) {
+		fam_atomic_128_read(atomic, compare);
+
+		store[0] = compare[0] - 1;
+		store[1] = compare[1] - 1;
+
+		fam_atomic_128_compare_store(atomic, compare, store, result);
+
+		if (result[0] == compare[0] && result[1] == compare[1])
+			break;
+	}
+}
+
+static inline void
+acquire_swap_128(int64_t *atomic) 
+{
+        int64_t value[2];
+        int64_t result[2];
+
+        value[0] = value[1] = ACQUIRED;
+
+        for (;;) {
+                fam_atomic_128_swap(atomic, value, result);
+
+                if (result[0] == AVAILABLE && result[1] == AVAILABLE)
+                        break;
+        }
+}
+
+static inline void
+release_swap_128(int64_t *atomic)
+{
+	int64_t compare[2];
+	int64_t store[2];
+	int64_t result[2];
+
+	/*
+	 * We purposely implement the release function by decrementing
+	 * the atomic value instead of setting it to the available state.
+	 * The effect of this is that a deadlock occurs if there are bugs
+	 * with the atomic, and the user can know something went wrong with
+	 * the test.
+	 */
+	for (;;) {
+		fam_atomic_128_read(atomic, compare);
+
+		store[0] = compare[0] - 1;
+		store[1] = compare[1] - 1;
+
+		fam_atomic_128_compare_store(atomic, compare, store, result);
+
+		if (result[0] == compare[0] && result[1] == compare[1])
+			break;
+	}
+}
+
 /*
  * This is the main data structure containing regular variables
  * that get modified by multiple processes, and fam_atomics which
@@ -106,6 +194,8 @@ struct data {
 	int64_t swap_64;
 	int32_t fetch_add_32;
 	int64_t fetch_add_64;
+	int64_t compare_store_128[2];
+	int64_t swap_128[2];
 } __attribute__((__aligned__(128)));
 
 /*
@@ -161,12 +251,16 @@ int main(int argc, char **argv)
 	}
 
 	if (need_init) {
+		int64_t value[2] = { AVAILABLE, AVAILABLE };
+
 		fam_atomic_32_write(&data->compare_store_32, AVAILABLE);
 		fam_atomic_64_write(&data->compare_store_64, AVAILABLE);
 		fam_atomic_32_write(&data->swap_32, AVAILABLE);
 		fam_atomic_64_write(&data->swap_64, AVAILABLE);
 		fam_atomic_32_write(&data->fetch_add_32, 0);
 		fam_atomic_64_write(&data->fetch_add_64, 0);
+		fam_atomic_128_write(data->compare_store_128, value);
+		fam_atomic_128_write(data->swap_128, value);
 	}
 
 	struct benchmark_data *benchmark_data;
@@ -313,6 +407,18 @@ int main(int argc, char **argv)
 		 */
 		acquire_swap_64(&data->swap_64);
 		release_swap_64(&data->swap_64);
+
+		/*
+		 * compare and store 128.
+		 */
+		acquire_compare_and_store_128(data->compare_store_128);
+		release_compare_and_store_128(data->compare_store_128);
+
+		/*
+		 * swap 128.
+		 */
+		acquire_swap_128(data->swap_128);
+		release_swap_128(data->swap_128);
 
 		fam_atomic_32_fetch_add(&data->fetch_add_32, 1);
 		fam_atomic_64_fetch_add(&data->fetch_add_64, 1);
