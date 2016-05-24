@@ -1,3 +1,9 @@
+libfam-atomic (2.2+l4tm) stable; urgency=low
+
+  * Add libfam-atomic-test package.
+
+ -- Jason Low <jason.low2@hpe.com>  Mon, 23 May 2016 15:45:19 -0800
+
 libfam-atomic (2.1+l4tm) stable; urgency=low
 
   * Require registration, ARM64 simulated library, deprecate unpadded APIs.
