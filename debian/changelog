@@ -1,4 +1,4 @@
-libfam-atomic (2.2+l4tm) stable; urgency=low
+libfam-atomic (2.2+l4tm) catapult; urgency=low
 
   * Add libfam-atomic-test package.
 
