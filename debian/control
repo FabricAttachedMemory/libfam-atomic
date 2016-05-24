@@ -5,6 +5,8 @@ Section: misc
 Priority: optional
 XS-Requester: l4tm@groups.int.hpe.com
 XS-Source-Origin: native
+Vcs-Browser: https://github.hpe.com/hpelinux/libfam-atomic.git
+Vcs-Git: https://github.hpe.com/hpelinux/libfam-atomic.git
 Origin: HPE
 Build-Depends: debhelper (>= 9), pkg-config, libtool, automake,
  autoconf-archive, asciidoc, libxml2-utils, xsltproc, xml-core,
