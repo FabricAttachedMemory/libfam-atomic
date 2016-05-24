@@ -1,9 +1,9 @@
 How to run single node test:
 
-1. Make sure libfam-atomic1 and libfam-atomic1-dev packages are installed.
+1. Make sure libfam-atomic2 and libfam-atomic2-dev packages are installed.
 
-   # apt-get -y install libfam-atomic1
-   # apt-get -y install libfam-atomic1-dev
+   # apt-get -y install libfam-atomic2
+   # apt-get -y install libfam-atomic2-dev
 
 2. Compile the fam_atomic_single_node_test.c program.
 
