@@ -46,3 +46,12 @@ Description: Fabric attached memory atomic library - debugging symbols
  fam-atomic-related issues. It should be installed when experiencing
  crashes involving fam-atomic so that a better backtrace is provided
  in the bug report.
+
+Package: libfam-atomic2-tests
+Section: misc
+Priority: extra
+Architecture: any
+Depends: libfam-atomic2 (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
+Description: Fabric attached memory atomic tests
+ This package contains the single and multi node prgrams for
+ testing the APIs and functionality of the fam-atomic library.
