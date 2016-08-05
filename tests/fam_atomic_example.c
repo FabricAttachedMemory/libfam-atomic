@@ -35,7 +35,7 @@ struct data {
 
 int
 main(int argc, char **argv) {
-	char *file = "test.dat";
+	char *file = "/lfs/test.dat";
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
 	unlink(file);
 	ftruncate(fd, sizeof(struct data));
