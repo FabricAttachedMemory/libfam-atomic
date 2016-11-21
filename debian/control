@@ -1,17 +1,22 @@
 Source: libfam-atomic
-Maintainer: Jason Low <jason.low2@hpe.com>
+Maintainer: Keith Packard <packard@hpe.com>
 Uploaders: Keith Packard <keithp@keithp.com>
 Section: misc
 Priority: optional
-XS-Requester: l4tm@groups.int.hpe.com
-XS-Source-Origin: native
-Vcs-Browser: https://github.hpe.com/hpelinux/libfam-atomic.git
-Vcs-Git: https://github.hpe.com/hpelinux/libfam-atomic.git
 Origin: HPE
-Build-Depends: debhelper (>= 9), pkg-config, libtool, automake,
- autoconf-archive, asciidoc, libxml2-utils, xsltproc, xml-core,
- docbook-xsl, docbook-xml
-Standards-Version: 3.9.6.1
+Build-Depends: debhelper (>= 9),
+	dh-autoreconf,
+	pkg-config,
+	libtool,
+	automake,
+	autoconf-archive,
+	asciidoc,
+	libxml2-utils,
+	xsltproc,
+	xml-core,
+	docbook-xsl,
+	docbook-xml
+Standards-Version: 3.9.6
 
 Package: libfam-atomic2
 Section: libs

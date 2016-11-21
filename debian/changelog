@@ -1,43 +1,5 @@
-libfam-atomic (2.2+l4tm1) catapult; urgency=low
+libfam-atomic (2.2-1) unstable; urgency=low
 
-  * Add libfam-atomic-test package.
+  * Repackage for unstable
 
- -- Jason Low <jason.low2@hpe.com>  Mon, 23 May 2016 15:45:19 -0800
-
-libfam-atomic (2.1+l4tm) stable; urgency=low
-
-  * Require registration, ARM64 simulated library, deprecate unpadded APIs.
-
- -- Jason Low <jason.low2@hpe.com>  Tue, 12 Apr 2016 15:35:39 -0800
-
-
-libfam-atomic (2.0+l4tm) stable; urgency=low
-
-  * Works with aperture swapping, API changes, atomics on DRAM
-
- -- Jason Low <jason.low2@hpe.com>  Mon, 4 Apr 2016 14:56:45 -0800
-
-libfam-atomic (1.5+l4tm) stable; urgency=low
-
-  * Fixes registration between threads and compiler errors when using C++.
-
- -- Jason Low <jason.low2@hpe.com>  Tue, 16 Feb 2016 9:20:50 -0800
-
-libfam-atomic (1.4) stable; urgency=low
-
-  * Add support for TMAS zbridge atomics.
-
- -- Jason Low <jason.low2@hpe.com>  Wed, 3 Feb 2016 19:56:01 -0800
-
-libfam-atomic (1.3) stable; urgency=low
-
-  * Fix up debian packaging.
-
- -- Keith Packard <keithp@keithp.com>  Mon, 19 Oct 2015 21:57:30 -0700
-
-libfam-atomic (1.2) stable; urgency=low
-
-  * Release #2. Adds registration functions, spinlocks, complete 16
-    byte atomic APIs
-
- -- Jason Low <jason.low2@hp.com>  Wed, 16 Sep 2015 23:57:18 -0600
+ -- Keith Packard <packard@hpe.com>  Mon, 21 Nov 2016 12:14:33 -0800
