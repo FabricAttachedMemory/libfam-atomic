@@ -1,0 +1,2 @@
+version=3
+https://github.hpe.com/hpelinux/libfam-atomic/tags .*/v(\d.+)
