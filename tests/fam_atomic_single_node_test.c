@@ -26,6 +26,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <assert.h>
+#include <pthread.h>
 
 static inline void
 acquire_compare_and_store_32(int32_t *atomic)
