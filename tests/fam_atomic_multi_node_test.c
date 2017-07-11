@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <time.h>
 
 /*
@@ -204,7 +205,7 @@ struct data {
 struct benchmark_data {
 	int64_t iterations;
 	bool start;
-	bool done;
+	int32_t done;
 };
 
 bool file_exists(char *filename)
@@ -428,4 +429,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
