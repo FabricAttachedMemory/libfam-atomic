@@ -319,7 +319,7 @@ static void add_thread(void)
 
 	/* Add to registry */
 	rcu_reader_reg->tid = pthread_self();
-	assert(rcu_reader_reg->ctr == 0);
+	rcu_reader_reg->ctr = 0;
 	cds_list_add(&rcu_reader_reg->node, &registry);
 	rcu_reader = rcu_reader_reg;
 }
