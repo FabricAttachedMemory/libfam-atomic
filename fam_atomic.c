@@ -19,7 +19,10 @@
 #include <assert.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <string.h>
 #include <linux/futex.h>
+#define _GNU_SOURCE
+#include <unistd.h>
 #include <sys/syscall.h>
 #include "fam_atomic.h"
 #include "rcu-rbtree/urcu-bp.h"
