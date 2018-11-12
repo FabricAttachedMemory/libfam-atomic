@@ -1,3 +1,9 @@
+libfam-atomic (2.3+l4tm1) catapult; urgency=low
+
+  * Initialize rcu cnt field.
+
+ -- Betty Dall <betty.dall@hpe.com> Wed, 10 Jan 2018 14:24:08 -0800
+
 libfam-atomic (2.2+l4tm1) catapult; urgency=low
 
   * Add libfam-atomic-test package.
