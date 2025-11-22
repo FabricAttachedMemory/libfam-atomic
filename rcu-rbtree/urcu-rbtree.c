@@ -27,7 +27,7 @@
  * Press, September 2009.
  */
 
-#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 #define _LGPL_SOURCE
 
 #include <stdio.h>
